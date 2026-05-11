@@ -7,18 +7,18 @@ Phase ごとに段階的に進める。各 Phase の最後でユーザーに動�
 ## Phase 0: プロジェクト初期化
 
 ### 0.1 環境構築
-- [ ] `npm create vite@latest . -- --template react-ts` で Vite + React + TS プロジェクト作成
-- [ ] Tailwind CSS をセットアップ(`tailwindcss`, `postcss`, `autoprefixer`)
-- [ ] `react-router-dom`, `dexie`, `recharts`, `vite-plugin-pwa` をインストール
-- [ ] `vitest` を dev dependency でインストール
-- [ ] `.gitignore` に `node_modules/`, `dist/`, `.DS_Store` 等
+- [x] `npm create vite@latest . -- --template react-ts` で Vite + React + TS プロジェクト作成
+- [x] Tailwind CSS をセットアップ(`tailwindcss`, `postcss`, `autoprefixer`)
+- [x] `react-router-dom`, `dexie`, `recharts`, `vite-plugin-pwa` をインストール
+- [x] `vitest` を dev dependency でインストール
+- [x] `.gitignore` に `node_modules/`, `dist/`, `.DS_Store` 等
 - [ ] `npm run dev` で初期画面が出ることを確認
 
 ### 0.2 PWA セットアップ
-- [ ] `vite.config.ts` に `vite-plugin-pwa` 設定
-- [ ] `manifest.json` 相当をプラグイン設定に記述(name, short_name, theme_color, background_color)
-- [ ] アイコンプレースホルダ(192px, 512px, apple-touch-icon)を `public/icons/` に
-- [ ] `display: "standalone"`, `start_url: "/"` を確認
+- [x] `vite.config.ts` に `vite-plugin-pwa` 設定
+- [x] `manifest.json` 相当をプラグイン設定に記述(name, short_name, theme_color, background_color)
+- [x] アイコンプレースホルダ(192px, 512px, apple-touch-icon)を `public/icons/` に
+- [x] `display: "standalone"`, `start_url: "/"` を確認
 - [ ] iPhone Safari で「ホーム画面に追加」して動くことを確認
 
 ✅ Phase 0 完了 → ユーザーに確認
