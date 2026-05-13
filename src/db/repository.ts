@@ -1,5 +1,5 @@
 import { db } from './schema'
-import type { Exercise, ExerciseEntry, WorkoutDay } from './schema'
+import type { Exercise, ExerciseEntry, WorkoutDay, Routine } from './schema'
 import { crypto } from '../lib/crypto'
 
 // WorkoutDay
@@ -67,4 +67,47 @@ export async function deleteExercise(id: string): Promise<void> {
 export async function nextEntryOrder(workoutDayId: string): Promise<number> {
   const entries = await getEntriesForDay(workoutDayId)
   return entries.length === 0 ? 0 : Math.max(...entries.map(e => e.order)) + 1
+}
+
+// Routine
+
+export async function getRoutines(): Promise<Routine[]> {
+  const routines = await db.routines.toArray()
+  return routines.sort((a, b) => a.order - b.order)
+}
+
+export async function saveRoutine(data: Omit<Routine, 'id'>): Promise<Routine> {
+  const routine: Routine = { ...data, id: crypto.randomUUID() }
+  await db.routines.add(routine)
+  return routine
+}
+
+export async function updateRoutine(id: string, changes: Partial<Omit<Routine, 'id'>>): Promise<void> {
+  await db.routines.update(id, changes)
+}
+
+export async function deleteRoutine(id: string): Promise<void> {
+  await db.routines.delete(id)
+}
+
+// Apply a routine to a day: bulk-add entries with default weights
+export async function applyRoutine(routineId: string, dateKey: string): Promise<void> {
+  const routine = await db.routines.get(routineId)
+  if (!routine) return
+
+  const day = await upsertWorkoutDay(dateKey)
+  let order = await nextEntryOrder(day.id)
+
+  for (const exerciseId of routine.exerciseIds) {
+    const exercise = await db.exercises.get(exerciseId)
+    if (!exercise) continue
+    await addEntry({
+      workoutDayId: day.id,
+      exerciseId,
+      order: order++,
+      mainWeight: exercise.defaultWeight ?? 0,
+      warmupWeight: exercise.defaultWarmupWeight,
+      reps: [],
+    })
+  }
 }
