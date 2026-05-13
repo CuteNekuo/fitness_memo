@@ -1,12 +1,15 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { DailyView } from './components/daily/DailyView'
 
 function App() {
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">WorkoutNote</h1>
-        <p className="text-gray-400">Phase 0: セットアップ完了</p>
-      </div>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Navigate to="/day" replace />} />
+        <Route path="/day" element={<DailyView />} />
+        <Route path="/day/:date" element={<DailyView />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

@@ -30,22 +30,22 @@ Phase ごとに段階的に進める。各 Phase の最後でユーザーに動�
 「画像の通りに見えて、入力もできて、保存される」状態を目指す。
 
 ### 1.1 データ層
-- [ ] `src/db/schema.ts` で Dexie テーブル定義
-- [ ] `src/db/repository.ts` で CRUD 関数群を作る(getWorkoutDay, upsertEntry など)
-- [ ] 日付正規化ユーティリティ `src/lib/date.ts`
+- [x] `src/db/schema.ts` で Dexie テーブル定義
+- [x] `src/db/repository.ts` で CRUD 関数群を作る(getWorkoutDay, upsertEntry など)
+- [x] 日付正規化ユーティリティ `src/lib/date.ts`
 
 ### 1.2 1日ビュー(表示のみ)
-- [ ] `src/components/daily/DailyView.tsx` の骨格
-- [ ] 日付ヘッダー(`YYYY/MM/DD`)+ 左右スワイプ/ボタンで前後日に移動
-- [ ] `src/components/daily/EntryRow.tsx` で画像のフォーマットを再現
-- [ ] サンプルデータで表示確認
+- [x] `src/components/daily/DailyView.tsx` の骨格
+- [x] 日付ヘッダー(`YYYY/MM/DD`)+ 左右スワイプ/ボタンで前後日に移動
+- [x] `src/components/daily/EntryRow.tsx` で画像のフォーマットを再現
+- [x] サンプルデータで表示確認
 
 ### 1.3 エントリー追加(フォームモード)
-- [ ] `src/components/daily/EntryEditor.tsx`(モーダル/シート)
-- [ ] 種目略称入力 + 既存種目補完(過去の Exercise から)
-- [ ] 本セット重量、ウォームアップ重量、レップ配列の入力
-- [ ] 保存で `exerciseEntries` に追加 → `workoutDays` がなければ作成
-- [ ] 削除(スワイプ or 長押し)、編集(タップ)
+- [x] `src/components/daily/EntryEditor.tsx`(モーダル/シート)
+- [x] 種目略称入力 + 既存種目補完(過去の Exercise から)
+- [x] 本セット重量、ウォームアップ重量、レップ配列の入力
+- [x] 保存で `exerciseEntries` に追加 → `workoutDays` がなければ作成
+- [x] 削除(スワイプ or 長押し)、編集(タップ)
 
 ### 1.4 動作確認
 - [ ] iPhone Safari でホーム画面追加 → 一連の流れが動く
