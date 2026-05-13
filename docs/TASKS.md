@@ -59,24 +59,24 @@ Phase ごとに段階的に進める。各 Phase の最後でユーザーに動�
 ## Phase 2: テキスト入力モード + 種目辞書
 
 ### 2.1 テキストパーサー
-- [ ] `src/lib/parser.ts` 実装
-- [ ] `tests/parser.test.ts` でケース網羅
+- [x] `src/lib/parser.ts` 実装
+- [x] `tests/parser.test.ts` でケース網羅
   - 通常: `WRPD 60k\n30k /14/12`
   - W無し: `DPS ±0k\n/10/9/8`
   - W無し明示: `DPCF 30k\n- /12/10`
   - 異常系: 不正な数値、空文字、フォーマット崩れ
 
 ### 2.2 入力モード切り替え
-- [ ] `EntryEditor` にモード切り替えトグル
-- [ ] テキストモード時は単一の `<textarea>`
-- [ ] 保存時にパース → 失敗時はエラー表示
+- [x] `EntryEditor` にモード切り替えトグル
+- [x] テキストモード時は単一の `<textarea>`
+- [x] 保存時にパース → 失敗時はエラー表示
 - [ ] 設定でデフォルトモードを保存(localStorage)
 
 ### 2.3 種目マスター画面
-- [ ] `src/components/exercises/ExerciseList.tsx`
-- [ ] 略称・正式名称・デフォルト重量の編集
-- [ ] 略称の重複バリデーション
-- [ ] 削除時に使用中エントリーへの影響を警告
+- [x] `src/components/exercises/ExerciseList.tsx`
+- [x] 略称・正式名称・デフォルト重量の編集
+- [x] 略称の重複バリデーション
+- [x] 削除時に使用中エントリーへの影響を警告
 
 ✅ Phase 2 完了 → ユーザーに確認
 

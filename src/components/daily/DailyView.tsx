@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { today, toDateKey, fromDateKey, formatDisplay, addDays } from '../../lib/date'
 import { useWorkoutDay } from '../../hooks/useWorkoutDay'
 import { EntryRow } from './EntryRow'
@@ -81,7 +81,13 @@ export function DailyView() {
       </div>
 
       {/* Bottom bar */}
-      <div className="sticky bottom-0 bg-black border-t border-neutral-800 px-4 py-3 flex justify-end safe-area-bottom">
+      <div className="sticky bottom-0 bg-black border-t border-neutral-800 px-4 py-3 flex items-center justify-between">
+        <Link
+          to="/exercises"
+          className="text-neutral-500 hover:text-white text-xs transition-colors"
+        >
+          種目一覧
+        </Link>
         <button
           onClick={openAdd}
           className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
