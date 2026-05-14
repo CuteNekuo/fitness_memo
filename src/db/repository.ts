@@ -47,9 +47,17 @@ export async function getExerciseByAbbr(abbreviation: string): Promise<Exercise 
   return db.exercises.where('abbreviation').equals(abbreviation).first()
 }
 
-export async function upsertExercise(data: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>): Promise<Exercise> {
-  const existing = await getExerciseByAbbr(data.abbreviation)
+export async function upsertExercise(
+  data: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>,
+  existingId?: string
+): Promise<Exercise> {
   const now = Date.now()
+  if (existingId) {
+    await db.exercises.update(existingId, { ...data, updatedAt: now })
+    const updated = await db.exercises.get(existingId)
+    return updated!
+  }
+  const existing = await getExerciseByAbbr(data.abbreviation)
   if (existing) {
     await db.exercises.update(existing.id, { ...data, updatedAt: now })
     return { ...existing, ...data, updatedAt: now }

@@ -81,7 +81,7 @@ export function ExerciseList() {
         defaultWeight: form.defaultWeight ? parseFloat(form.defaultWeight) : undefined,
         defaultWarmupWeight: form.defaultWarmupWeight ? parseFloat(form.defaultWarmupWeight) : undefined,
         memo: form.memo.trim() || undefined,
-      })
+      }, editTarget?.id)
       closeForm()
     } finally {
       setSaving(false)
@@ -137,7 +137,7 @@ export function ExerciseList() {
       </div>
 
       {/* Add button */}
-      <div className="sticky bottom-0 bg-black border-t border-neutral-800 px-4 py-3 flex justify-end">
+      <div className="sticky bottom-0 bg-black border-t border-neutral-800 px-4 pt-3 pb-safe flex justify-end">
         <button
           onClick={openAdd}
           className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
