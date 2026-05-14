@@ -39,11 +39,20 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
   const [saving, setSaving] = useState(false)
   const abbrRef = useRef<HTMLInputElement>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const repInputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const prevRepsLengthRef = useRef(reps.length)
 
   useEffect(() => {
     if (mode === 'form') abbrRef.current?.focus()
     else textRef.current?.focus()
   }, [mode])
+
+  useEffect(() => {
+    if (reps.length > prevRepsLengthRef.current) {
+      repInputRefs.current[reps.length - 1]?.focus()
+    }
+    prevRepsLengthRef.current = reps.length
+  }, [reps.length])
 
   function handleAbbrChange(value: string) {
     setAbbr(value)
@@ -196,6 +205,7 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
                 {reps.map((rep, i) => (
                   <div key={i} className="flex items-center gap-1">
                     <input
+                      ref={el => { repInputRefs.current[i] = el }}
                       type="number"
                       value={rep}
                       onChange={e => updateRep(i, e.target.value)}
