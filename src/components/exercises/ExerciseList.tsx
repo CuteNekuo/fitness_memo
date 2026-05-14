@@ -98,7 +98,7 @@ export function ExerciseList() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-4 border-b border-neutral-800">
+      <div className="flex items-center gap-3 px-4 safe-top pb-4 border-b border-neutral-800">
         <button onClick={() => navigate(-1)} className="text-neutral-400 hover:text-white p-1" aria-label="戻る">
           ‹
         </button>
@@ -176,7 +176,7 @@ function ExerciseFormSheet({ form, isEdit, error, saving, onChange, onSave, onCl
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative bg-neutral-950 border-t border-neutral-800 rounded-t-2xl px-4 pt-4 pb-8">
+      <div className="relative bg-neutral-950 border-t border-neutral-800 rounded-t-2xl px-4 pt-4 pb-safe">
         <div className="w-10 h-1 bg-neutral-700 rounded-full mx-auto mb-5" />
         <h2 className="text-sm font-bold mb-4">{isEdit ? '種目を編集' : '種目を追加'}</h2>
 

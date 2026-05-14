@@ -106,7 +106,7 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative bg-neutral-950 border-t border-neutral-800 rounded-t-2xl px-4 pt-4 pb-8">
+      <div className="relative bg-neutral-950 border-t border-neutral-800 rounded-t-2xl px-4 pt-4 pb-safe">
         <div className="w-10 h-1 bg-neutral-700 rounded-full mx-auto mb-4" />
 
         {/* Mode toggle */}

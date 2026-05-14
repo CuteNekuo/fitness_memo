@@ -66,7 +66,7 @@ export function WeekView() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-12 pb-3 border-b border-neutral-800">
+      <div className="flex items-center justify-between px-4 safe-top pb-3 border-b border-neutral-800">
         <button onClick={() => goWeek(-1)} className="text-neutral-400 hover:text-white p-2 -ml-2" aria-label="前の週">
           ‹
         </button>

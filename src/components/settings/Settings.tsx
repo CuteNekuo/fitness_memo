@@ -62,7 +62,7 @@ export function Settings() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="px-4 pt-12 pb-4 border-b border-neutral-800">
+      <div className="px-4 safe-top pb-4 border-b border-neutral-800">
         <h1 className="text-base font-bold">設定</h1>
       </div>
 

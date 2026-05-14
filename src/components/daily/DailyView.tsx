@@ -61,7 +61,7 @@ export function DailyView() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 pt-12 pb-4">
+      <div className="flex items-center justify-between px-4 safe-top pb-4">
         <button onClick={() => goDay(-1)} className="text-neutral-400 hover:text-white p-2 -ml-2" aria-label="前の日">
           ‹
         </button>
@@ -142,7 +142,7 @@ function RoutinePicker({ routines, onSelect, onClose }: RoutinePickerProps) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative bg-neutral-950 border-t border-neutral-800 rounded-t-2xl px-4 pt-4 pb-8">
+      <div className="relative bg-neutral-950 border-t border-neutral-800 rounded-t-2xl px-4 pt-4 pb-safe">
         <div className="w-10 h-1 bg-neutral-700 rounded-full mx-auto mb-4" />
         <h2 className="text-sm font-bold mb-3">ルーティンを適用</h2>
         <div className="flex flex-col gap-1">

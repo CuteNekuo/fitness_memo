@@ -13,7 +13,7 @@ export function BottomNav() {
   ]
 
   return (
-    <div className="flex border-t border-neutral-800 bg-black">
+    <div className="flex border-t border-neutral-800 bg-black pb-safe">
       {tabs.map(tab => {
         const active = pathname.startsWith(tab.match)
         return (
