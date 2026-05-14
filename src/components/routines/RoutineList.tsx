@@ -4,6 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/schema'
 import type { Exercise, Routine } from '../../db/schema'
 import { saveRoutine, updateRoutine, deleteRoutine, getRoutines } from '../../db/repository'
+import { BODY_PARTS } from '../../lib/constants'
 
 export function RoutineList() {
   const navigate = useNavigate()
@@ -105,8 +106,18 @@ function RoutineFormSheet({ exercises, initial, onClose }: SheetProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>(initial?.exerciseIds ?? [])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [filterPart, setFilterPart] = useState<string>('すべて')
 
   const routines = useLiveQuery<Routine[], Routine[]>(() => getRoutines(), [], [])
+
+  const usedBodyParts = ['すべて', ...BODY_PARTS.filter(bp => exercises.some(e => e.bodyPart === bp))]
+  if (exercises.some(e => !e.bodyPart)) usedBodyParts.push('未分類')
+
+  const filteredExercises = filterPart === 'すべて'
+    ? exercises
+    : filterPart === '未分類'
+    ? exercises.filter(e => !e.bodyPart)
+    : exercises.filter(e => e.bodyPart === filterPart)
 
   function toggleExercise(id: string) {
     setSelectedIds(prev =>
@@ -196,12 +207,31 @@ function RoutineFormSheet({ exercises, initial, onClose }: SheetProps) {
 
           {/* Exercise picker */}
           <div>
-            <label className="text-xs text-neutral-500 mb-1 block">種目を選択</label>
+            <label className="text-xs text-neutral-500 mb-2 block">種目を選択</label>
             {exercises.length === 0 && (
               <p className="text-xs text-neutral-600">種目マスターに種目を登録してください</p>
             )}
+            {/* Body part filter */}
+            {usedBodyParts.length > 1 && (
+              <div className="flex gap-1.5 flex-wrap mb-2">
+                {usedBodyParts.map(bp => (
+                  <button
+                    key={bp}
+                    type="button"
+                    onClick={() => setFilterPart(bp)}
+                    className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+                      filterPart === bp
+                        ? 'bg-white text-black font-bold'
+                        : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                    }`}
+                  >
+                    {bp}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
-              {exercises.map(ex => {
+              {filteredExercises.map(ex => {
                 const selected = selectedIds.includes(ex.id)
                 return (
                   <button
