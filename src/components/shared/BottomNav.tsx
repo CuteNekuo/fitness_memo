@@ -7,6 +7,7 @@ export function BottomNav() {
 
   const tabs = [
     { label: '今日', to: `/day/${todayKey}`, match: '/day' },
+    { label: '月', to: '/month', match: '/month' },
     { label: '週', to: '/week', match: '/week' },
     { label: 'グラフ', to: '/chart', match: '/chart' },
     { label: '設定', to: '/settings', match: '/settings' },
