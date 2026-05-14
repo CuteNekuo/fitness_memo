@@ -1,8 +1,39 @@
 @import "tailwindcss";
 
 @layer base {
-  html {
+  html, body {
+    background-color: #000;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    /* Fill entire screen including safe areas */
+    min-height: 100dvh;
   }
+
+  /* Prevent double-tap zoom on buttons/links */
+  button, a {
+    touch-action: manipulation;
+  }
+
+  /* iOS: prevent callout on long-press */
+  button, a, img {
+    -webkit-touch-callout: none;
+  }
+
+  /* 16px minimum on inputs to prevent iOS auto-zoom */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area utility classes */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+}
+.safe-top {
+  padding-top: calc(env(safe-area-inset-top) + 1.5rem);
 }
