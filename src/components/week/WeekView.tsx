@@ -92,10 +92,20 @@ export function WeekView() {
             >
               {/* Day header */}
               <div className="text-center mb-2">
-                <div className={`text-xs mb-0.5 ${isToday ? 'text-white font-bold' : 'text-neutral-500'}`}>
+                <div className={`text-xs mb-0.5 ${
+                  isToday ? 'text-white font-bold'
+                  : day.getDay() === 0 ? 'text-red-400'
+                  : day.getDay() === 6 ? 'text-blue-400'
+                  : 'text-neutral-500'
+                }`}>
                   {dayLabel(day)}
                 </div>
-                <div className={`text-xs font-mono ${isToday ? 'text-white font-bold' : 'text-neutral-400'}`}>
+                <div className={`text-xs font-mono ${
+                  isToday ? 'text-white font-bold'
+                  : day.getDay() === 0 ? 'text-red-400'
+                  : day.getDay() === 6 ? 'text-blue-400'
+                  : 'text-neutral-400'
+                }`}>
                   {String(day.getDate()).padStart(2, '0')}
                 </div>
               </div>
