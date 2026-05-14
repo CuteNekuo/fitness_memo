@@ -85,7 +85,11 @@ export function DailyView() {
             entry={entry}
             exercise={exerciseMap.get(entry.exerciseId)}
             onEdit={openEdit}
-            onDelete={removeEntry}
+            onDelete={async (id) => {
+                const abbr = exerciseMap.get(entries.find(e => e.id === id)?.exerciseId ?? '')?.abbreviation ?? '種目'
+                if (!confirm(`「${abbr}」の記録を削除しますか？`)) return
+                await removeEntry(id)
+              }}
           />
         ))}
       </div>
