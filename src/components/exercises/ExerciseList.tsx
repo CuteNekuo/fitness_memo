@@ -30,6 +30,7 @@ export function ExerciseList() {
   )
 
   const [editTarget, setEditTarget] = useState<Exercise | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
   const [form, setForm] = useState<FormState>(emptyForm)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -38,6 +39,7 @@ export function ExerciseList() {
     setEditTarget(null)
     setForm(emptyForm)
     setError('')
+    setFormOpen(true)
   }
 
   function openEdit(ex: Exercise) {
@@ -50,12 +52,14 @@ export function ExerciseList() {
       memo: ex.memo ?? '',
     })
     setError('')
+    setFormOpen(true)
   }
 
   function closeForm() {
     setEditTarget(null)
     setForm(emptyForm)
     setError('')
+    setFormOpen(false)
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -90,7 +94,6 @@ export function ExerciseList() {
     if (editTarget?.id === ex.id) closeForm()
   }
 
-  const isFormOpen = editTarget !== null || (form.abbreviation !== '' || form.fullName !== '')
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
@@ -144,7 +147,7 @@ export function ExerciseList() {
       </div>
 
       {/* Form sheet */}
-      {(editTarget !== null || isFormOpen) && (
+      {formOpen && (
         <ExerciseFormSheet
           form={form}
           isEdit={editTarget !== null}
