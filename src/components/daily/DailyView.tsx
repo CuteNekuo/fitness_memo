@@ -6,6 +6,7 @@ import { useWorkoutDay } from '../../hooks/useWorkoutDay'
 import { applyRoutine, getRoutines } from '../../db/repository'
 import { EntryRow } from './EntryRow'
 import { EntryEditor } from './EntryEditor'
+import { BottomNav } from '../shared/BottomNav'
 import type { ExerciseEntry, Routine } from '../../db/schema'
 
 export function DailyView() {
@@ -89,16 +90,13 @@ export function DailyView() {
         ))}
       </div>
 
-      {/* Bottom bar */}
-      <div className="sticky bottom-0 bg-black border-t border-neutral-800 px-4 py-3 flex items-center justify-between gap-2">
+      {/* Action bar */}
+      <div className="bg-black border-t border-neutral-800 px-4 py-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-3 text-xs text-neutral-500">
           <Link to="/exercises" className="hover:text-white transition-colors">種目</Link>
           <Link to="/routines" className="hover:text-white transition-colors">ルーティン</Link>
           {routines.length > 0 && (
-            <button
-              onClick={() => setRoutinePickerOpen(true)}
-              className="hover:text-white transition-colors"
-            >
+            <button onClick={() => setRoutinePickerOpen(true)} className="hover:text-white transition-colors">
               適用
             </button>
           )}
@@ -110,6 +108,7 @@ export function DailyView() {
           ＋ 種目追加
         </button>
       </div>
+      <BottomNav />
 
       {/* Entry editor */}
       {editorOpen && (

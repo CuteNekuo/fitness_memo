@@ -101,18 +101,18 @@ Phase ごとに段階的に進める。各 Phase の最後でユーザーに動�
 ## Phase 4: 週ビュー + グラフ
 
 ### 4.1 週一覧ビュー
-- [ ] `src/components/week/WeekView.tsx`
-- [ ] 7日横並び、各カラムに種目略称コンパクト表示
-- [ ] カラムタップで該当日の DailyView へ遷移
-- [ ] 週送り(左右スワイプ/ボタン)
+- [x] `src/components/week/WeekView.tsx`
+- [x] 7日横並び、各カラムに種目略称コンパクト表示
+- [x] カラムタップで該当日の DailyView へ遷移
+- [x] 週送り(左右ボタン)
 
 ### 4.2 種目別グラフ
-- [ ] `src/components/charts/ExerciseChart.tsx`
-- [ ] 種目選択 → 本セット重量推移を Recharts で
-- [ ] 期間切り替え(1ヶ月 / 3ヶ月 / 6ヶ月 / 1年)
+- [x] `src/components/charts/ExerciseChart.tsx`
+- [x] 種目選択 → 本セット重量推移を Recharts で
+- [x] 期間切り替え(1ヶ月 / 3ヶ月 / 6ヶ月 / 1年)
 
 ### 4.3 ビュー切り替え
-- [ ] DailyView / WeekView / ChartView をボトムナビかタブで切り替え
+- [x] DailyView / WeekView / ChartView / 設定 をボトムナビで切り替え
 
 ✅ Phase 4 完了 → ユーザーに確認
 
@@ -121,11 +121,11 @@ Phase ごとに段階的に進める。各 Phase の最後でユーザーに動�
 ## Phase 5: 設定 + 仕上げ
 
 ### 5.1 設定画面
-- [ ] `src/components/settings/Settings.tsx`
+- [x] `src/components/settings/Settings.tsx`
 - [ ] デフォルト入力モード切り替え
-- [ ] データエクスポート(全データを JSON ダウンロード)
-- [ ] データインポート(JSON 読み込み)
-- [ ] データ全消去(確認ダイアログ付き)
+- [x] データエクスポート(全データを JSON ダウンロード)
+- [x] データインポート(JSON 読み込み)
+- [x] データ全消去(確認ダイアログ付き)
 
 ### 5.2 仕上げ
 - [ ] 空状態のメッセージ
