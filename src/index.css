@@ -1,16 +1,14 @@
 @import "tailwindcss";
 
 @layer base {
-  html {
+  html, body {
+    background-color: #000;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Prevent elastic overscroll on the root */
     overscroll-behavior: none;
-  }
-
-  body {
-    /* Prevent text size adjustment on orientation change */
     -webkit-text-size-adjust: 100%;
+    /* Fill entire screen including safe areas */
+    min-height: 100dvh;
   }
 
   /* Prevent double-tap zoom on buttons/links */
