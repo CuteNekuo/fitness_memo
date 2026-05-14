@@ -4,6 +4,7 @@ export interface Exercise {
   id: string
   abbreviation: string
   fullName: string
+  bodyPart?: string
   defaultWeight?: number
   defaultWarmupWeight?: number
   memo?: string
@@ -46,6 +47,13 @@ class WorkoutDB extends Dexie {
     super('WorkoutNoteDB')
     this.version(1).stores({
       exercises: 'id, &abbreviation',
+      routines: 'id',
+      workoutDays: 'id, &date',
+      exerciseEntries: 'id, workoutDayId, exerciseId',
+    })
+    // version 2: bodyPart フィールド追加（optional なので既存レコードへの影響なし）
+    this.version(2).stores({
+      exercises: 'id, &abbreviation, bodyPart',
       routines: 'id',
       workoutDays: 'id, &date',
       exerciseEntries: 'id, workoutDayId, exerciseId',

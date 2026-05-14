@@ -4,10 +4,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/schema'
 import type { Exercise } from '../../db/schema'
 import { upsertExercise, deleteExercise } from '../../db/repository'
+import { BODY_PARTS } from '../../lib/constants'
 
 interface FormState {
   abbreviation: string
   fullName: string
+  bodyPart: string
   defaultWeight: string
   defaultWarmupWeight: string
   memo: string
@@ -16,6 +18,7 @@ interface FormState {
 const emptyForm: FormState = {
   abbreviation: '',
   fullName: '',
+  bodyPart: '',
   defaultWeight: '',
   defaultWarmupWeight: '',
   memo: '',
@@ -47,6 +50,7 @@ export function ExerciseList() {
     setForm({
       abbreviation: ex.abbreviation,
       fullName: ex.fullName,
+      bodyPart: ex.bodyPart ?? '',
       defaultWeight: ex.defaultWeight != null ? String(ex.defaultWeight) : '',
       defaultWarmupWeight: ex.defaultWarmupWeight != null ? String(ex.defaultWarmupWeight) : '',
       memo: ex.memo ?? '',
@@ -67,7 +71,6 @@ export function ExerciseList() {
     const abbrUpper = form.abbreviation.trim().toUpperCase()
     if (!abbrUpper) { setError('略称は必須です'); return }
 
-    // Duplicate check (excluding self when editing)
     const dup = exercises.find(
       ex => ex.abbreviation === abbrUpper && ex.id !== editTarget?.id
     )
@@ -78,6 +81,7 @@ export function ExerciseList() {
       await upsertExercise({
         abbreviation: abbrUpper,
         fullName: form.fullName.trim(),
+        bodyPart: form.bodyPart || undefined,
         defaultWeight: form.defaultWeight ? parseFloat(form.defaultWeight) : undefined,
         defaultWarmupWeight: form.defaultWarmupWeight ? parseFloat(form.defaultWarmupWeight) : undefined,
         memo: form.memo.trim() || undefined,
@@ -94,6 +98,25 @@ export function ExerciseList() {
     if (editTarget?.id === ex.id) closeForm()
   }
 
+  // Group by bodyPart (BODY_PARTS order, then uncategorized)
+  const grouped = new Map<string, Exercise[]>()
+  const uncategorized: Exercise[] = []
+  for (const ex of exercises) {
+    if (ex.bodyPart) {
+      const arr = grouped.get(ex.bodyPart) ?? []
+      arr.push(ex)
+      grouped.set(ex.bodyPart, arr)
+    } else {
+      uncategorized.push(ex)
+    }
+  }
+  // Build display sections in BODY_PARTS order
+  const sections: { label: string; items: Exercise[] }[] = BODY_PARTS
+    .filter(bp => grouped.has(bp))
+    .map(bp => ({ label: bp, items: grouped.get(bp)! }))
+  if (uncategorized.length > 0) {
+    sections.push({ label: '未分類', items: uncategorized })
+  }
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
@@ -106,32 +129,39 @@ export function ExerciseList() {
       </div>
 
       {/* List */}
-      <div className="flex-1 px-4 py-2">
+      <div className="flex-1 px-4 py-2 overflow-y-auto">
         {exercises.length === 0 && (
           <p className="text-neutral-600 text-sm mt-8 text-center">登録された種目がありません</p>
         )}
-        {exercises.map(ex => (
-          <div
-            key={ex.id}
-            className="flex items-center justify-between py-3 border-b border-neutral-800"
-          >
-            <button className="flex-1 text-left" onClick={() => openEdit(ex)}>
-              <span className="font-mono text-sm">{ex.abbreviation}</span>
-              {ex.fullName && (
-                <span className="text-neutral-500 text-xs ml-2">{ex.fullName}</span>
-              )}
-              <div className="text-neutral-600 text-xs mt-0.5">
-                {ex.defaultWeight != null && `本 ${ex.defaultWeight}kg`}
-                {ex.defaultWarmupWeight != null && `  W ${ex.defaultWarmupWeight}kg`}
+        {sections.map(section => (
+          <div key={section.label}>
+            <p className="text-xs text-neutral-500 uppercase tracking-widest mt-4 mb-1 px-1">
+              {section.label}
+            </p>
+            {section.items.map(ex => (
+              <div
+                key={ex.id}
+                className="flex items-center justify-between py-3 border-b border-neutral-800"
+              >
+                <button className="flex-1 text-left" onClick={() => openEdit(ex)}>
+                  <span className="font-mono text-sm">{ex.abbreviation}</span>
+                  {ex.fullName && (
+                    <span className="text-neutral-500 text-xs ml-2">{ex.fullName}</span>
+                  )}
+                  <div className="text-neutral-600 text-xs mt-0.5">
+                    {ex.defaultWeight != null && `本 ${ex.defaultWeight}kg`}
+                    {ex.defaultWarmupWeight != null && `  W ${ex.defaultWarmupWeight}kg`}
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleDelete(ex)}
+                  className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs"
+                  aria-label="削除"
+                >
+                  削除
+                </button>
               </div>
-            </button>
-            <button
-              onClick={() => handleDelete(ex)}
-              className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs"
-              aria-label="削除"
-            >
-              削除
-            </button>
+            ))}
           </div>
         ))}
       </div>
@@ -201,6 +231,27 @@ function ExerciseFormSheet({ form, isEdit, error, saving, onChange, onSave, onCl
                 className="w-full bg-neutral-900 text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30"
                 placeholder="ワイドグリップ・ラットプルダウン"
               />
+            </div>
+          </div>
+
+          {/* Body part */}
+          <div>
+            <label className="text-xs text-neutral-500 mb-2 block">部位</label>
+            <div className="flex flex-wrap gap-1.5">
+              {BODY_PARTS.map(bp => (
+                <button
+                  key={bp}
+                  type="button"
+                  onClick={() => onChange({ bodyPart: form.bodyPart === bp ? '' : bp })}
+                  className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
+                    form.bodyPart === bp
+                      ? 'bg-white text-black font-bold'
+                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                  }`}
+                >
+                  {bp}
+                </button>
+              ))}
             </div>
           </div>
 
