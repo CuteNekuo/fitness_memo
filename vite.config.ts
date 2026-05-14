@@ -10,6 +10,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg'],
+      workbox: {
+        // SPA: すべてのナビゲーションリクエストを index.html で処理
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+      },
       manifest: {
         name: 'WorkoutNote',
         short_name: 'WorkoutNote',
@@ -18,6 +24,7 @@ export default defineConfig({
         background_color: '#000000',
         display: 'standalone',
         start_url: '/',
+        scope: '/',
         icons: [
           {
             src: '/icons/icon-192.png',
