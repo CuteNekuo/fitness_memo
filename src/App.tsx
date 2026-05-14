@@ -3,6 +3,7 @@ import { DailyView } from './components/daily/DailyView'
 import { ExerciseList } from './components/exercises/ExerciseList'
 import { RoutineList } from './components/routines/RoutineList'
 import { WeekView } from './components/week/WeekView'
+import { MonthView } from './components/month/MonthView'
 import { ExerciseChart } from './components/charts/ExerciseChart'
 import { Settings } from './components/settings/Settings'
 
@@ -15,6 +16,8 @@ function App() {
         <Route path="/day/:date" element={<DailyView />} />
         <Route path="/week" element={<WeekView />} />
         <Route path="/week/:week" element={<WeekView />} />
+        <Route path="/month" element={<MonthView />} />
+        <Route path="/month/:month" element={<MonthView />} />
         <Route path="/chart" element={<ExerciseChart />} />
         <Route path="/exercises" element={<ExerciseList />} />
         <Route path="/routines" element={<RoutineList />} />

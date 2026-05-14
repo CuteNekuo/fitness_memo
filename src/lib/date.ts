@@ -56,3 +56,31 @@ export function dayLabel(date: Date): string {
   const day = date.getDay() // 0=Sun
   return DAY_LABELS[day === 0 ? 6 : day - 1]
 }
+
+// "YYYY-MM" key for a month
+export function monthKey(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  return `${y}-${m}`
+}
+
+export function fromMonthKey(key: string): { year: number; month: number } {
+  const [y, m] = key.split('-').map(Number)
+  return { year: y, month: m }
+}
+
+export function addMonths(year: number, month: number, delta: number): { year: number; month: number } {
+  const d = new Date(year, month - 1 + delta, 1)
+  return { year: d.getFullYear(), month: d.getMonth() + 1 }
+}
+
+// Returns calendar grid (Sun-start), null = empty cell
+export function getMonthGrid(year: number, month: number): (Date | null)[] {
+  const first = new Date(year, month - 1, 1)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const startPad = first.getDay() // 0=Sun
+  const cells: (Date | null)[] = Array(startPad).fill(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month - 1, d))
+  while (cells.length % 7 !== 0) cells.push(null)
+  return cells
+}
