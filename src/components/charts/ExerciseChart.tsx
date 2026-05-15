@@ -8,6 +8,7 @@ import { db } from '../../db/schema'
 import type { Exercise, ExerciseEntry, WorkoutDay } from '../../db/schema'
 import { toDateKey, today, addDays, fromDateKey, formatDisplay } from '../../lib/date'
 import { BottomNav } from '../shared/BottomNav'
+import { BODY_PARTS } from '../../lib/constants'
 
 type Period = '1m' | '3m' | '6m' | '1y'
 
@@ -21,6 +22,7 @@ const PERIODS: { label: string; value: Period; days: number }[] = [
 export function ExerciseChart() {
   const [selectedId, setSelectedId] = useState<string>('')
   const [period, setPeriod] = useState<Period>('3m')
+  const [filterPart, setFilterPart] = useState<string>('すべて')
 
   const exercises = useLiveQuery<Exercise[], Exercise[]>(() => db.exercises.orderBy('abbreviation').toArray(), [], [])
 
@@ -69,25 +71,59 @@ export function ExerciseChart() {
 
   const selected = exercises.find(e => e.id === selectedId)
 
+  const usedBodyParts = ['すべて', ...BODY_PARTS.filter(bp => exercises.some(e => e.bodyPart === bp))]
+  if (exercises.some(e => !e.bodyPart)) usedBodyParts.push('未分類')
+
+  const filteredExercises = filterPart === 'すべて'
+    ? exercises
+    : filterPart === '未分類'
+    ? exercises.filter(e => !e.bodyPart)
+    : exercises.filter(e => e.bodyPart === filterPart)
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <div className="px-4 safe-top pb-4 border-b border-neutral-800">
+      <div className="px-4 safe-top pb-3 border-b border-neutral-800">
         <h1 className="text-base font-bold mb-3">グラフ</h1>
 
-        {/* Exercise selector */}
-        <select
-          value={selectedId}
-          onChange={e => setSelectedId(e.target.value)}
-          className="w-full bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm outline-none appearance-none"
-        >
-          <option value="">種目を選択...</option>
-          {exercises.map(ex => (
-            <option key={ex.id} value={ex.id}>
-              {ex.abbreviation}{ex.fullName ? ` (${ex.fullName})` : ''}
-            </option>
+        {/* Body part filter */}
+        {usedBodyParts.length > 1 && (
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            {usedBodyParts.map(bp => (
+              <button
+                key={bp}
+                onClick={() => { setFilterPart(bp); setSelectedId('') }}
+                className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+                  filterPart === bp
+                    ? 'bg-white text-black font-bold'
+                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
+                }`}
+              >
+                {bp}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Exercise buttons */}
+        <div className="flex flex-wrap gap-2">
+          {filteredExercises.map(ex => (
+            <button
+              key={ex.id}
+              onClick={() => setSelectedId(ex.id)}
+              className={`font-mono text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                selectedId === ex.id
+                  ? 'border-white text-white bg-white/10'
+                  : 'border-neutral-700 text-neutral-400 hover:border-neutral-500'
+              }`}
+            >
+              {ex.abbreviation}
+            </button>
           ))}
-        </select>
+          {filteredExercises.length === 0 && (
+            <p className="text-neutral-600 text-xs">種目がありません</p>
+          )}
+        </div>
       </div>
 
       {/* Period toggle */}
