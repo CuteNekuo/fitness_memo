@@ -96,9 +96,13 @@ export function DailyView() {
         uncategorized.push(entry)
       }
     }
-    const sections: { label: string; items: ExerciseEntry[] }[] = BODY_PARTS
+    const knownSections = BODY_PARTS
       .filter(bp => map.has(bp))
       .map(bp => ({ label: bp, items: map.get(bp)! }))
+    const unknownSections = [...map.keys()]
+      .filter(bp => !(BODY_PARTS as readonly string[]).includes(bp))
+      .map(bp => ({ label: bp, items: map.get(bp)! }))
+    const sections = [...knownSections, ...unknownSections]
     if (uncategorized.length > 0) sections.push({ label: '未分類', items: uncategorized })
     return sections
   })()
