@@ -136,8 +136,8 @@ export function DailyView() {
                 exercise={exerciseMap.get(entry.exerciseId)}
                 selectMode={selectMode}
                 checked={selectedIds.has(entry.id)}
-                isFirst={false}
-                isLast={false}
+                isFirst={true}
+                isLast={true}
                 onEdit={openEdit}
                 onToggle={toggleSelect}
                 onMoveUp={() => {}}
