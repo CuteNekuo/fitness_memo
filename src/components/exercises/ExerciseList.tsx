@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/schema'
 import type { Exercise } from '../../db/schema'
-import { upsertExercise, deleteExercise } from '../../db/repository'
+import { upsertExercise, deleteExercise, updateExerciseOrders } from '../../db/repository'
 import { BODY_PARTS } from '../../lib/constants'
 
 interface FormState {
@@ -27,7 +27,10 @@ const emptyForm: FormState = {
 export function ExerciseList() {
   const navigate = useNavigate()
   const exercises = useLiveQuery<Exercise[], Exercise[]>(
-    () => db.exercises.orderBy('abbreviation').toArray(),
+    async () => {
+      const all = await db.exercises.toArray()
+      return all.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+    },
     [],
     []
   )
@@ -37,19 +40,17 @@ export function ExerciseList() {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // 選択モード
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  function enterSelectMode() {
-    setSelectMode(true)
-    setSelectedIds(new Set())
-  }
+  // 並び替えモード（ローカルコピーで操作）
+  const [sortMode, setSortMode] = useState(false)
+  const [sortList, setSortList] = useState<Exercise[]>([])
 
-  function exitSelectMode() {
-    setSelectMode(false)
-    setSelectedIds(new Set())
-  }
-
+  function enterSelectMode() { setSelectMode(true); setSelectedIds(new Set()) }
+  function exitSelectMode() { setSelectMode(false); setSelectedIds(new Set()) }
   function toggleSelect(id: string) {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -57,7 +58,6 @@ export function ExerciseList() {
       return next
     })
   }
-
   async function handleBulkDelete() {
     if (selectedIds.size === 0) return
     if (!confirm(`${selectedIds.size}件の種目を削除しますか？\n過去の記録には影響しません。`)) return
@@ -65,13 +65,29 @@ export function ExerciseList() {
     exitSelectMode()
   }
 
-  function openAdd() {
-    setEditTarget(null)
-    setForm(emptyForm)
-    setError('')
-    setFormOpen(true)
+  function enterSortMode() { setSortMode(true); setSortList([...exercises]) }
+  async function exitSortMode(save: boolean) {
+    if (save) await updateExerciseOrders(sortList.map(e => e.id))
+    setSortMode(false)
+  }
+  function moveUp(index: number) {
+    if (index === 0) return
+    setSortList(prev => {
+      const next = [...prev]
+      ;[next[index - 1], next[index]] = [next[index], next[index - 1]]
+      return next
+    })
+  }
+  function moveDown(index: number) {
+    setSortList(prev => {
+      if (index === prev.length - 1) return prev
+      const next = [...prev]
+      ;[next[index], next[index + 1]] = [next[index + 1], next[index]]
+      return next
+    })
   }
 
+  function openAdd() { setEditTarget(null); setForm(emptyForm); setError(''); setFormOpen(true) }
   function openEdit(ex: Exercise) {
     setEditTarget(ex)
     setForm({
@@ -85,30 +101,21 @@ export function ExerciseList() {
     setError('')
     setFormOpen(true)
   }
-
-  function closeForm() {
-    setEditTarget(null)
-    setForm(emptyForm)
-    setError('')
-    setFormOpen(false)
-  }
+  function closeForm() { setEditTarget(null); setForm(emptyForm); setError(''); setFormOpen(false) }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     const abbrUpper = form.abbreviation.trim().toUpperCase()
     if (!abbrUpper) { setError('略称は必須です'); return }
-
-    const dup = exercises.find(
-      ex => ex.abbreviation === abbrUpper && ex.id !== editTarget?.id
-    )
+    const dup = exercises.find(ex => ex.abbreviation === abbrUpper && ex.id !== editTarget?.id)
     if (dup) { setError(`略称「${abbrUpper}」はすでに登録されています`); return }
-
     setSaving(true)
     try {
       await upsertExercise({
         abbreviation: abbrUpper,
         fullName: form.fullName.trim(),
         bodyPart: form.bodyPart || undefined,
+        order: editTarget?.order ?? 0,
         defaultWeight: form.defaultWeight ? parseFloat(form.defaultWeight) : undefined,
         defaultWarmupWeight: form.defaultWarmupWeight ? parseFloat(form.defaultWarmupWeight) : undefined,
         memo: form.memo.trim() || undefined,
@@ -125,7 +132,7 @@ export function ExerciseList() {
     if (editTarget?.id === ex.id) closeForm()
   }
 
-  // Group by bodyPart (BODY_PARTS order, then uncategorized)
+  // グループ表示用（通常モード）
   const grouped = new Map<string, Exercise[]>()
   const uncategorized: Exercise[] = []
   for (const ex of exercises) {
@@ -137,20 +144,22 @@ export function ExerciseList() {
       uncategorized.push(ex)
     }
   }
-  // Build display sections in BODY_PARTS order
   const sections: { label: string; items: Exercise[] }[] = BODY_PARTS
     .filter(bp => grouped.has(bp))
     .map(bp => ({ label: bp, items: grouped.get(bp)! }))
-  if (uncategorized.length > 0) {
-    sections.push({ label: '未分類', items: uncategorized })
-  }
+  if (uncategorized.length > 0) sections.push({ label: '未分類', items: uncategorized })
+
+  const currentMode = sortMode ? 'sort' : selectMode ? 'select' : 'normal'
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 safe-top pb-4 border-b border-neutral-800">
-        {selectMode ? (
-          <button onClick={exitSelectMode} className="text-neutral-400 hover:text-white text-sm">
+        {currentMode !== 'normal' ? (
+          <button
+            onClick={() => currentMode === 'sort' ? exitSortMode(false) : exitSelectMode()}
+            className="text-neutral-400 hover:text-white text-sm"
+          >
             キャンセル
           </button>
         ) : (
@@ -159,10 +168,14 @@ export function ExerciseList() {
           </button>
         )}
         <h1 className="text-base font-bold flex-1">種目マスター</h1>
-        {!selectMode && exercises.length > 0 && (
-          <button onClick={enterSelectMode} className="text-neutral-400 hover:text-white text-sm">
-            選択
-          </button>
+        {currentMode === 'normal' && exercises.length > 0 && (
+          <div className="flex gap-3">
+            <button onClick={enterSortMode} className="text-neutral-400 hover:text-white text-sm">並び替え</button>
+            <button onClick={enterSelectMode} className="text-neutral-400 hover:text-white text-sm">選択</button>
+          </div>
+        )}
+        {currentMode === 'sort' && (
+          <button onClick={() => exitSortMode(true)} className="text-white font-bold text-sm">完了</button>
         )}
       </div>
 
@@ -171,18 +184,33 @@ export function ExerciseList() {
         {exercises.length === 0 && (
           <p className="text-neutral-600 text-sm mt-8 text-center">登録された種目がありません</p>
         )}
-        {sections.map(section => (
+
+        {/* 並び替えモード: フラットリスト + ↑↓ */}
+        {sortMode && sortList.map((ex, i) => (
+          <div key={ex.id} className="flex items-center gap-2 py-3 border-b border-neutral-800">
+            <span className="flex-1 font-mono text-sm">
+              {ex.abbreviation}
+              {ex.bodyPart && <span className="text-neutral-500 text-xs ml-2">{ex.bodyPart}</span>}
+            </span>
+            <button
+              onClick={() => moveUp(i)} disabled={i === 0}
+              className="text-neutral-500 hover:text-white disabled:opacity-20 px-2 py-1 text-base"
+            >↑</button>
+            <button
+              onClick={() => moveDown(i)} disabled={i === sortList.length - 1}
+              className="text-neutral-500 hover:text-white disabled:opacity-20 px-2 py-1 text-base"
+            >↓</button>
+          </div>
+        ))}
+
+        {/* 通常・選択モード: 部位グループ表示 */}
+        {!sortMode && sections.map(section => (
           <div key={section.label}>
-            <p className="text-xs text-neutral-500 uppercase tracking-widest mt-4 mb-1 px-1">
-              {section.label}
-            </p>
+            <p className="text-xs text-neutral-500 uppercase tracking-widest mt-4 mb-1 px-1">{section.label}</p>
             {section.items.map(ex => {
               const checked = selectedIds.has(ex.id)
               return (
-                <div
-                  key={ex.id}
-                  className="flex items-center justify-between py-3 border-b border-neutral-800"
-                >
+                <div key={ex.id} className="flex items-center justify-between py-3 border-b border-neutral-800">
                   <button
                     className="flex-1 text-left flex items-center gap-3"
                     onClick={() => selectMode ? toggleSelect(ex.id) : openEdit(ex)}
@@ -196,9 +224,7 @@ export function ExerciseList() {
                     )}
                     <span>
                       <span className="font-mono text-sm">{ex.abbreviation}</span>
-                      {ex.fullName && (
-                        <span className="text-neutral-500 text-xs ml-2">{ex.fullName}</span>
-                      )}
+                      {ex.fullName && <span className="text-neutral-500 text-xs ml-2">{ex.fullName}</span>}
                       <div className="text-neutral-600 text-xs mt-0.5">
                         {ex.defaultWeight != null && `本 ${ex.defaultWeight}kg`}
                         {ex.defaultWarmupWeight != null && `  W ${ex.defaultWarmupWeight}kg`}
@@ -206,11 +232,7 @@ export function ExerciseList() {
                     </span>
                   </button>
                   {!selectMode && (
-                    <button
-                      onClick={() => handleDelete(ex)}
-                      className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs"
-                      aria-label="削除"
-                    >
+                    <button onClick={() => handleDelete(ex)} className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs" aria-label="削除">
                       削除
                     </button>
                   )}
@@ -227,21 +249,17 @@ export function ExerciseList() {
           <button
             onClick={handleBulkDelete}
             disabled={selectedIds.size === 0}
-            className="bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity disabled:opacity-30"
+            className="bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-full active:opacity-70 disabled:opacity-30"
           >
             削除 ({selectedIds.size}件)
           </button>
-        ) : (
-          <button
-            onClick={openAdd}
-            className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
-          >
+        ) : !sortMode ? (
+          <button onClick={openAdd} className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity">
             ＋ 種目追加
           </button>
-        )}
+        ) : null}
       </div>
 
-      {/* Form sheet */}
       {formOpen && (
         <ExerciseFormSheet
           form={form}
@@ -299,7 +317,6 @@ function ExerciseFormSheet({ form, isEdit, error, saving, onChange, onSave, onCl
             </div>
           </div>
 
-          {/* Body part */}
           <div>
             <label className="text-xs text-neutral-500 mb-2 block">部位</label>
             <div className="flex flex-wrap gap-1.5">
@@ -309,9 +326,7 @@ function ExerciseFormSheet({ form, isEdit, error, saving, onChange, onSave, onCl
                   type="button"
                   onClick={() => onChange({ bodyPart: form.bodyPart === bp ? '' : bp })}
                   className={`px-3 py-1.5 rounded-full text-xs transition-colors ${
-                    form.bodyPart === bp
-                      ? 'bg-white text-black font-bold'
-                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                    form.bodyPart === bp ? 'bg-white text-black font-bold' : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
                   }`}
                 >
                   {bp}
@@ -323,55 +338,32 @@ function ExerciseFormSheet({ form, isEdit, error, saving, onChange, onSave, onCl
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-xs text-neutral-500 mb-1 block">デフォルト本セット (kg)</label>
-              <input
-                type="number"
-                value={form.defaultWeight}
-                onChange={e => onChange({ defaultWeight: e.target.value })}
+              <input type="number" value={form.defaultWeight} onChange={e => onChange({ defaultWeight: e.target.value })}
                 className="w-full bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30"
-                placeholder="60"
-                inputMode="decimal"
-                step="0.5"
-              />
+                placeholder="60" inputMode="decimal" step="0.5" />
             </div>
             <div className="flex-1">
               <label className="text-xs text-neutral-500 mb-1 block">デフォルトW重量 (kg)</label>
-              <input
-                type="number"
-                value={form.defaultWarmupWeight}
-                onChange={e => onChange({ defaultWarmupWeight: e.target.value })}
+              <input type="number" value={form.defaultWarmupWeight} onChange={e => onChange({ defaultWarmupWeight: e.target.value })}
                 className="w-full bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30"
-                placeholder="30"
-                inputMode="decimal"
-                step="0.5"
-              />
+                placeholder="30" inputMode="decimal" step="0.5" />
             </div>
           </div>
 
           <div>
             <label className="text-xs text-neutral-500 mb-1 block">メモ</label>
-            <input
-              value={form.memo}
-              onChange={e => onChange({ memo: e.target.value })}
+            <input value={form.memo} onChange={e => onChange({ memo: e.target.value })}
               className="w-full bg-neutral-900 text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30"
-              placeholder="任意メモ"
-            />
+              placeholder="任意メモ" />
           </div>
 
           {error && <p className="text-red-400 text-xs">{error}</p>}
 
           <div className="flex gap-3 mt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 rounded-xl border border-neutral-700 text-sm text-neutral-300"
-            >
+            <button type="button" onClick={onClose} className="flex-1 py-3 rounded-xl border border-neutral-700 text-sm text-neutral-300">
               キャンセル
             </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 py-3 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-40"
-            >
+            <button type="submit" disabled={saving} className="flex-1 py-3 rounded-xl bg-white text-black font-bold text-sm disabled:opacity-40">
               {saving ? '保存中...' : '保存'}
             </button>
           </div>

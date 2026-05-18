@@ -40,7 +40,8 @@ export async function deleteEntry(id: string): Promise<void> {
 // Exercise (master)
 
 export async function getExercises(): Promise<Exercise[]> {
-  return db.exercises.orderBy('abbreviation').toArray()
+  const all = await db.exercises.toArray()
+  return all.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
 }
 
 export async function getExerciseByAbbr(abbreviation: string): Promise<Exercise | undefined> {
@@ -62,13 +63,23 @@ export async function upsertExercise(
     await db.exercises.update(existing.id, { ...data, updatedAt: now })
     return { ...existing, ...data, updatedAt: now }
   }
-  const exercise: Exercise = { ...data, id: crypto.randomUUID(), createdAt: now, updatedAt: now }
+  const all = await db.exercises.toArray()
+  const maxOrder = all.length > 0 ? Math.max(...all.map(e => e.order ?? 0)) + 1 : 0
+  const exercise: Exercise = { ...data, order: maxOrder, id: crypto.randomUUID(), createdAt: now, updatedAt: now }
   await db.exercises.add(exercise)
   return exercise
 }
 
 export async function deleteExercise(id: string): Promise<void> {
   await db.exercises.delete(id)
+}
+
+export async function updateExerciseOrders(ids: string[]): Promise<void> {
+  await db.transaction('rw', db.exercises, async () => {
+    for (let i = 0; i < ids.length; i++) {
+      await db.exercises.update(ids[i], { order: i })
+    }
+  })
 }
 
 // Next order index for entries in a day

@@ -5,6 +5,7 @@ export interface Exercise {
   abbreviation: string
   fullName: string
   bodyPart?: string
+  order: number
   defaultWeight?: number
   defaultWarmupWeight?: number
   memo?: string
@@ -51,12 +52,24 @@ class WorkoutDB extends Dexie {
       workoutDays: 'id, &date',
       exerciseEntries: 'id, workoutDayId, exerciseId',
     })
-    // version 2: bodyPart フィールド追加（optional なので既存レコードへの影響なし）
+    // version 2: bodyPart フィールド追加
     this.version(2).stores({
       exercises: 'id, &abbreviation, bodyPart',
       routines: 'id',
       workoutDays: 'id, &date',
       exerciseEntries: 'id, workoutDayId, exerciseId',
+    })
+    // version 3: order フィールド追加、既存種目にアルファベット順で order を付与
+    this.version(3).stores({
+      exercises: 'id, &abbreviation, bodyPart, order',
+      routines: 'id',
+      workoutDays: 'id, &date',
+      exerciseEntries: 'id, workoutDayId, exerciseId',
+    }).upgrade(async tx => {
+      const all = await tx.table('exercises').orderBy('abbreviation').toArray()
+      for (let i = 0; i < all.length; i++) {
+        await tx.table('exercises').update(all[i].id, { order: i })
+      }
     })
   }
 }
