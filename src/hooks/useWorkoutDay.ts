@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/schema'
 import type { ExerciseEntry, Exercise } from '../db/schema'
 import {
-  getWorkoutDay,
   upsertWorkoutDay,
   getEntriesForDay,
   addEntry,
@@ -13,13 +12,12 @@ import {
 } from '../db/repository'
 
 export function useWorkoutDay(dateKey: string) {
-  const [workoutDayId, setWorkoutDayId] = useState<string | null>(null)
-
-  useEffect(() => {
-    getWorkoutDay(dateKey).then(day => {
-      setWorkoutDayId(day?.id ?? null)
-    })
-  }, [dateKey])
+  // Reactively watch workoutDayId so applyRoutine の作成も即反映される
+  const workoutDayId = useLiveQuery<string | null, null>(
+    () => db.workoutDays.where('date').equals(dateKey).first().then(d => d?.id ?? null),
+    [dateKey],
+    null
+  )
 
   const entries = useLiveQuery<ExerciseEntry[], ExerciseEntry[]>(
     () => workoutDayId ? getEntriesForDay(workoutDayId) : Promise.resolve([]),
@@ -35,7 +33,6 @@ export function useWorkoutDay(dateKey: string) {
 
   const saveEntry = useCallback(async (data: Omit<ExerciseEntry, 'id' | 'workoutDayId' | 'order'>) => {
     const day = await upsertWorkoutDay(dateKey)
-    setWorkoutDayId(day.id)
     const order = await nextEntryOrder(day.id)
     await addEntry({ ...data, workoutDayId: day.id, order })
   }, [dateKey])
