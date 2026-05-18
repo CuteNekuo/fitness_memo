@@ -143,9 +143,13 @@ export function ExerciseList() {
       uncategorized.push(ex)
     }
   }
-  const sections: { label: string; items: Exercise[] }[] = BODY_PARTS
+  const knownSections: { label: string; items: Exercise[] }[] = BODY_PARTS
     .filter(bp => grouped.has(bp))
     .map(bp => ({ label: bp, items: grouped.get(bp)! }))
+  const unknownSections: { label: string; items: Exercise[] }[] = [...grouped.keys()]
+    .filter(bp => !(BODY_PARTS as readonly string[]).includes(bp))
+    .map(bp => ({ label: bp, items: grouped.get(bp)! }))
+  const sections = [...knownSections, ...unknownSections]
   if (uncategorized.length > 0) sections.push({ label: '未分類', items: uncategorized })
 
   const currentMode = sortMode ? 'sort' : selectMode ? 'select' : 'normal'
