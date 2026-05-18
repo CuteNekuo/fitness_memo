@@ -115,7 +115,6 @@ export function ExerciseList() {
         abbreviation: abbrUpper,
         fullName: form.fullName.trim(),
         bodyPart: form.bodyPart || undefined,
-        order: editTarget?.order ?? 0,
         defaultWeight: form.defaultWeight ? parseFloat(form.defaultWeight) : undefined,
         defaultWarmupWeight: form.defaultWarmupWeight ? parseFloat(form.defaultWarmupWeight) : undefined,
         memo: form.memo.trim() || undefined,
