@@ -24,6 +24,8 @@ export function DailyView() {
   const [applying, setApplying] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [sortMode, setSortMode] = useState(false)
+  const [sortList, setSortList] = useState<ExerciseEntry[]>([])
 
   const exerciseMap = new Map(exercises.map(e => [e.id, e]))
 
@@ -41,6 +43,25 @@ export function DailyView() {
     if (!confirm(`${selectedIds.size}件の記録を削除しますか？`)) return
     await Promise.all([...selectedIds].map(id => removeEntry(id)))
     exitSelectMode()
+  }
+
+  function enterSortMode() { setSortMode(true); setSortList([...entries]) }
+  async function exitSortMode(save: boolean) {
+    if (save) {
+      await Promise.all(sortList.map((e, i) => editEntry(e.id, { order: i })))
+    }
+    setSortMode(false)
+  }
+  function moveEntry(id: string, delta: number) {
+    setSortList(prev => {
+      const idx = prev.findIndex(e => e.id === id)
+      if (idx < 0) return prev
+      const next = [...prev]
+      const target = idx + delta
+      if (target < 0 || target >= next.length) return prev
+      ;[next[idx], next[target]] = [next[target], next[idx]]
+      return next
+    })
   }
 
   function goDay(delta: number) {
@@ -97,15 +118,20 @@ export function DailyView() {
         {entries.length === 0 && !applying && (
           <p className="text-neutral-600 text-sm mt-8 text-center">記録がありません</p>
         )}
-        {entries.map(entry => (
+        {(sortMode ? sortList : entries).map((entry, i, arr) => (
           <EntryRow
             key={entry.id}
             entry={entry}
             exercise={exerciseMap.get(entry.exerciseId)}
             selectMode={selectMode}
+            sortMode={sortMode}
             checked={selectedIds.has(entry.id)}
+            isFirst={i === 0}
+            isLast={i === arr.length - 1}
             onEdit={openEdit}
             onToggle={toggleSelect}
+            onMoveUp={(id) => moveEntry(id, -1)}
+            onMoveDown={(id) => moveEntry(id, 1)}
             onDelete={async (id) => {
               const abbr = exerciseMap.get(entries.find(e => e.id === id)?.exerciseId ?? '')?.abbreviation ?? '種目'
               if (!confirm(`「${abbr}」の記録を削除しますか？`)) return
@@ -117,39 +143,37 @@ export function DailyView() {
 
       {/* Action bar */}
       <div className="bg-black border-t border-neutral-800 px-4 py-2 flex items-center justify-between gap-2">
-        {selectMode ? (
+        {selectMode && (
           <>
-            <button onClick={exitSelectMode} className="text-neutral-400 hover:text-white text-sm">
-              キャンセル
-            </button>
-            <button
-              onClick={handleBulkDelete}
-              disabled={selectedIds.size === 0}
-              className="bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity disabled:opacity-30"
-            >
+            <button onClick={exitSelectMode} className="text-neutral-400 hover:text-white text-sm">キャンセル</button>
+            <button onClick={handleBulkDelete} disabled={selectedIds.size === 0}
+              className="bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-full active:opacity-70 disabled:opacity-30">
               削除 ({selectedIds.size}件)
             </button>
           </>
-        ) : (
+        )}
+        {sortMode && (
+          <>
+            <button onClick={() => exitSortMode(false)} className="text-neutral-400 hover:text-white text-sm">キャンセル</button>
+            <button onClick={() => exitSortMode(true)} className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70">完了</button>
+          </>
+        )}
+        {!selectMode && !sortMode && (
           <>
             <div className="flex items-center gap-3 text-xs text-neutral-500">
               <Link to="/exercises" className="hover:text-white transition-colors">種目</Link>
               <Link to="/routines" className="hover:text-white transition-colors">ルーティン</Link>
               {routines.length > 0 && (
-                <button onClick={() => setRoutinePickerOpen(true)} className="hover:text-white transition-colors">
-                  適用
-                </button>
+                <button onClick={() => setRoutinePickerOpen(true)} className="hover:text-white transition-colors">適用</button>
               )}
               {entries.length > 0 && (
-                <button onClick={enterSelectMode} className="hover:text-white transition-colors">
-                  選択
-                </button>
+                <>
+                  <button onClick={enterSortMode} className="hover:text-white transition-colors">並び替え</button>
+                  <button onClick={enterSelectMode} className="hover:text-white transition-colors">選択</button>
+                </>
               )}
             </div>
-            <button
-              onClick={openAdd}
-              className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
-            >
+            <button onClick={openAdd} className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity">
               ＋ 種目追加
             </button>
           </>
