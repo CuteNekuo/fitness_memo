@@ -22,8 +22,26 @@ export function DailyView() {
   const [editTarget, setEditTarget] = useState<ExerciseEntry | null>(null)
   const [routinePickerOpen, setRoutinePickerOpen] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const exerciseMap = new Map(exercises.map(e => [e.id, e]))
+
+  function enterSelectMode() { setSelectMode(true); setSelectedIds(new Set()) }
+  function exitSelectMode() { setSelectMode(false); setSelectedIds(new Set()) }
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return
+    if (!confirm(`${selectedIds.size}件の記録を削除しますか？`)) return
+    await Promise.all([...selectedIds].map(id => removeEntry(id)))
+    exitSelectMode()
+  }
 
   function goDay(delta: number) {
     navigate(`/day/${toDateKey(addDays(fromDateKey(dateKey), delta))}`)
@@ -84,33 +102,58 @@ export function DailyView() {
             key={entry.id}
             entry={entry}
             exercise={exerciseMap.get(entry.exerciseId)}
+            selectMode={selectMode}
+            checked={selectedIds.has(entry.id)}
             onEdit={openEdit}
+            onToggle={toggleSelect}
             onDelete={async (id) => {
-                const abbr = exerciseMap.get(entries.find(e => e.id === id)?.exerciseId ?? '')?.abbreviation ?? '種目'
-                if (!confirm(`「${abbr}」の記録を削除しますか？`)) return
-                await removeEntry(id)
-              }}
+              const abbr = exerciseMap.get(entries.find(e => e.id === id)?.exerciseId ?? '')?.abbreviation ?? '種目'
+              if (!confirm(`「${abbr}」の記録を削除しますか？`)) return
+              await removeEntry(id)
+            }}
           />
         ))}
       </div>
 
       {/* Action bar */}
       <div className="bg-black border-t border-neutral-800 px-4 py-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3 text-xs text-neutral-500">
-          <Link to="/exercises" className="hover:text-white transition-colors">種目</Link>
-          <Link to="/routines" className="hover:text-white transition-colors">ルーティン</Link>
-          {routines.length > 0 && (
-            <button onClick={() => setRoutinePickerOpen(true)} className="hover:text-white transition-colors">
-              適用
+        {selectMode ? (
+          <>
+            <button onClick={exitSelectMode} className="text-neutral-400 hover:text-white text-sm">
+              キャンセル
             </button>
-          )}
-        </div>
-        <button
-          onClick={openAdd}
-          className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
-        >
-          ＋ 種目追加
-        </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={selectedIds.size === 0}
+              className="bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity disabled:opacity-30"
+            >
+              削除 ({selectedIds.size}件)
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-3 text-xs text-neutral-500">
+              <Link to="/exercises" className="hover:text-white transition-colors">種目</Link>
+              <Link to="/routines" className="hover:text-white transition-colors">ルーティン</Link>
+              {routines.length > 0 && (
+                <button onClick={() => setRoutinePickerOpen(true)} className="hover:text-white transition-colors">
+                  適用
+                </button>
+              )}
+              {entries.length > 0 && (
+                <button onClick={enterSelectMode} className="hover:text-white transition-colors">
+                  選択
+                </button>
+              )}
+            </div>
+            <button
+              onClick={openAdd}
+              className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
+            >
+              ＋ 種目追加
+            </button>
+          </>
+        )}
       </div>
       <BottomNav />
 
