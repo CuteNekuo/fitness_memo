@@ -176,27 +176,39 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
             <div className="flex gap-3">
               <div className="flex-1">
                 <label className="text-xs text-neutral-500 mb-1 block">本セット (kg)</label>
-                <input
-                  type="number"
-                  value={mainWeight}
-                  onChange={e => setMainWeight(e.target.value)}
-                  className="w-full bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30"
-                  placeholder="60"
-                  inputMode="decimal"
-                  step="0.5"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={mainWeight}
+                    onChange={e => setMainWeight(e.target.value)}
+                    className="w-full bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30 pr-7"
+                    placeholder="60"
+                    inputMode="decimal"
+                    step="0.5"
+                  />
+                  {mainWeight && (
+                    <button type="button" onClick={() => setMainWeight('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white text-base leading-none">×</button>
+                  )}
+                </div>
               </div>
               <div className="flex-1">
                 <label className="text-xs text-neutral-500 mb-1 block">ウォームアップ (kg)</label>
-                <input
-                  type="number"
-                  value={warmupWeight}
-                  onChange={e => setWarmupWeight(e.target.value)}
-                  className="w-full bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30"
-                  placeholder="省略可"
-                  inputMode="decimal"
-                  step="0.5"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={warmupWeight}
+                    onChange={e => setWarmupWeight(e.target.value)}
+                    className="w-full bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30 pr-7"
+                    placeholder="省略可"
+                    inputMode="decimal"
+                    step="0.5"
+                  />
+                  {warmupWeight && (
+                    <button type="button" onClick={() => setWarmupWeight('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white text-base leading-none">×</button>
+                  )}
+                </div>
               </div>
             </div>
 
