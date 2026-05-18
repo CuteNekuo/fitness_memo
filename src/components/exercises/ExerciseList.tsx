@@ -37,6 +37,33 @@ export function ExerciseList() {
   const [form, setForm] = useState<FormState>(emptyForm)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  function enterSelectMode() {
+    setSelectMode(true)
+    setSelectedIds(new Set())
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return
+    if (!confirm(`${selectedIds.size}件の種目を削除しますか？\n過去の記録には影響しません。`)) return
+    await Promise.all([...selectedIds].map(id => deleteExercise(id)))
+    exitSelectMode()
+  }
 
   function openAdd() {
     setEditTarget(null)
@@ -122,10 +149,21 @@ export function ExerciseList() {
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 safe-top pb-4 border-b border-neutral-800">
-        <button onClick={() => navigate(-1)} className="text-neutral-400 hover:text-white p-1" aria-label="戻る">
-          ‹
-        </button>
-        <h1 className="text-base font-bold">種目マスター</h1>
+        {selectMode ? (
+          <button onClick={exitSelectMode} className="text-neutral-400 hover:text-white text-sm">
+            キャンセル
+          </button>
+        ) : (
+          <button onClick={() => navigate(-1)} className="text-neutral-400 hover:text-white p-1" aria-label="戻る">
+            ‹
+          </button>
+        )}
+        <h1 className="text-base font-bold flex-1">種目マスター</h1>
+        {!selectMode && exercises.length > 0 && (
+          <button onClick={enterSelectMode} className="text-neutral-400 hover:text-white text-sm">
+            選択
+          </button>
+        )}
       </div>
 
       {/* List */}
@@ -138,42 +176,69 @@ export function ExerciseList() {
             <p className="text-xs text-neutral-500 uppercase tracking-widest mt-4 mb-1 px-1">
               {section.label}
             </p>
-            {section.items.map(ex => (
-              <div
-                key={ex.id}
-                className="flex items-center justify-between py-3 border-b border-neutral-800"
-              >
-                <button className="flex-1 text-left" onClick={() => openEdit(ex)}>
-                  <span className="font-mono text-sm">{ex.abbreviation}</span>
-                  {ex.fullName && (
-                    <span className="text-neutral-500 text-xs ml-2">{ex.fullName}</span>
-                  )}
-                  <div className="text-neutral-600 text-xs mt-0.5">
-                    {ex.defaultWeight != null && `本 ${ex.defaultWeight}kg`}
-                    {ex.defaultWarmupWeight != null && `  W ${ex.defaultWarmupWeight}kg`}
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleDelete(ex)}
-                  className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs"
-                  aria-label="削除"
+            {section.items.map(ex => {
+              const checked = selectedIds.has(ex.id)
+              return (
+                <div
+                  key={ex.id}
+                  className="flex items-center justify-between py-3 border-b border-neutral-800"
                 >
-                  削除
-                </button>
-              </div>
-            ))}
+                  <button
+                    className="flex-1 text-left flex items-center gap-3"
+                    onClick={() => selectMode ? toggleSelect(ex.id) : openEdit(ex)}
+                  >
+                    {selectMode && (
+                      <span className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                        checked ? 'bg-white border-white' : 'border-neutral-600'
+                      }`}>
+                        {checked && <span className="text-black text-xs font-bold">✓</span>}
+                      </span>
+                    )}
+                    <span>
+                      <span className="font-mono text-sm">{ex.abbreviation}</span>
+                      {ex.fullName && (
+                        <span className="text-neutral-500 text-xs ml-2">{ex.fullName}</span>
+                      )}
+                      <div className="text-neutral-600 text-xs mt-0.5">
+                        {ex.defaultWeight != null && `本 ${ex.defaultWeight}kg`}
+                        {ex.defaultWarmupWeight != null && `  W ${ex.defaultWarmupWeight}kg`}
+                      </div>
+                    </span>
+                  </button>
+                  {!selectMode && (
+                    <button
+                      onClick={() => handleDelete(ex)}
+                      className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs"
+                      aria-label="削除"
+                    >
+                      削除
+                    </button>
+                  )}
+                </div>
+              )
+            })}
           </div>
         ))}
       </div>
 
-      {/* Add button */}
+      {/* Bottom bar */}
       <div className="sticky bottom-0 bg-black border-t border-neutral-800 px-4 pt-3 pb-safe flex justify-end">
-        <button
-          onClick={openAdd}
-          className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
-        >
-          ＋ 種目追加
-        </button>
+        {selectMode ? (
+          <button
+            onClick={handleBulkDelete}
+            disabled={selectedIds.size === 0}
+            className="bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity disabled:opacity-30"
+          >
+            削除 ({selectedIds.size}件)
+          </button>
+        ) : (
+          <button
+            onClick={openAdd}
+            className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity"
+          >
+            ＋ 種目追加
+          </button>
+        )}
       </div>
 
       {/* Form sheet */}
