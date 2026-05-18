@@ -49,7 +49,7 @@ export async function getExerciseByAbbr(abbreviation: string): Promise<Exercise 
 }
 
 export async function upsertExercise(
-  data: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>,
+  data: Omit<Exercise, 'id' | 'order' | 'createdAt' | 'updatedAt'>,
   existingId?: string
 ): Promise<Exercise> {
   const now = Date.now()
