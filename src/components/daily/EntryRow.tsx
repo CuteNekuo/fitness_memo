@@ -4,7 +4,6 @@ interface Props {
   entry: ExerciseEntry
   exercise: Exercise | undefined
   selectMode: boolean
-  sortMode: boolean
   checked: boolean
   isFirst: boolean
   isLast: boolean
@@ -15,7 +14,7 @@ interface Props {
   onMoveDown: (id: string) => void
 }
 
-export function EntryRow({ entry, exercise, selectMode, sortMode, checked, isFirst, isLast, onEdit, onDelete, onToggle, onMoveUp, onMoveDown }: Props) {
+export function EntryRow({ entry, exercise, selectMode, checked, isFirst, isLast, onEdit, onDelete, onToggle, onMoveUp, onMoveDown }: Props) {
   const abbr = exercise?.abbreviation ?? '???'
   const weightStr = entry.weightDelta ? entry.weightDelta : `${entry.mainWeight}k`
   const warmupStr = entry.warmupWeight != null ? `${entry.warmupWeight}k` : '-'
@@ -24,7 +23,7 @@ export function EntryRow({ entry, exercise, selectMode, sortMode, checked, isFir
   return (
     <div
       className="py-3 border-b border-neutral-800 cursor-pointer active:opacity-60 transition-opacity"
-      onClick={() => selectMode ? onToggle(entry.id) : !sortMode && onEdit(entry)}
+      onClick={() => selectMode ? onToggle(entry.id) : onEdit(entry)}
     >
       <div className="flex items-center gap-3">
         {selectMode && (
@@ -34,24 +33,19 @@ export function EntryRow({ entry, exercise, selectMode, sortMode, checked, isFir
             {checked && <span className="text-black text-xs font-bold">✓</span>}
           </span>
         )}
-        <div className="flex-1 flex items-baseline justify-between">
+        <div className="flex-1 flex items-center justify-between">
           <div>
             <p className="font-mono text-sm leading-snug">{abbr} {weightStr}</p>
             <p className="font-mono text-sm leading-snug text-neutral-400">{warmupStr} {repsStr}</p>
           </div>
-          {!selectMode && !sortMode && (
-            <button
-              className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs"
-              onClick={(e) => { e.stopPropagation(); onDelete(entry.id) }}
-              aria-label="削除"
-            >×</button>
-          )}
-          {sortMode && (
-            <div className="flex gap-1">
+          {!selectMode && (
+            <div className="flex items-center">
               <button onClick={e => { e.stopPropagation(); onMoveUp(entry.id) }} disabled={isFirst}
-                className="text-neutral-500 hover:text-white disabled:opacity-20 px-2 py-1 text-base">↑</button>
+                className="text-neutral-600 hover:text-white disabled:opacity-20 px-1.5 py-1 text-sm leading-none">↑</button>
               <button onClick={e => { e.stopPropagation(); onMoveDown(entry.id) }} disabled={isLast}
-                className="text-neutral-500 hover:text-white disabled:opacity-20 px-2 py-1 text-base">↓</button>
+                className="text-neutral-600 hover:text-white disabled:opacity-20 px-1.5 py-1 text-sm leading-none">↓</button>
+              <button onClick={e => { e.stopPropagation(); onDelete(entry.id) }}
+                className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs ml-1" aria-label="削除">×</button>
             </div>
           )}
         </div>

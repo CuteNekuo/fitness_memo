@@ -24,8 +24,6 @@ export function DailyView() {
   const [applying, setApplying] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [sortMode, setSortMode] = useState(false)
-  const [sortList, setSortList] = useState<ExerciseEntry[]>([])
 
   const exerciseMap = new Map(exercises.map(e => [e.id, e]))
 
@@ -45,38 +43,23 @@ export function DailyView() {
     exitSelectMode()
   }
 
-  function enterSortMode() { setSortMode(true); setSortList([...entries]) }
-  async function exitSortMode(save: boolean) {
-    if (save) {
-      await Promise.all(sortList.map((e, i) => editEntry(e.id, { order: i })))
-    }
-    setSortMode(false)
-  }
-  function moveEntry(id: string, delta: number) {
-    setSortList(prev => {
-      const idx = prev.findIndex(e => e.id === id)
-      if (idx < 0) return prev
-      const next = [...prev]
-      const target = idx + delta
-      if (target < 0 || target >= next.length) return prev
-      ;[next[idx], next[target]] = [next[target], next[idx]]
-      return next
-    })
+  async function moveEntry(id: string, delta: number) {
+    const idx = entries.findIndex(e => e.id === id)
+    if (idx < 0) return
+    const target = idx + delta
+    if (target < 0 || target >= entries.length) return
+    const a = entries[idx]
+    const b = entries[target]
+    await editEntry(a.id, { order: b.order })
+    await editEntry(b.id, { order: a.order })
   }
 
   function goDay(delta: number) {
     navigate(`/day/${toDateKey(addDays(fromDateKey(dateKey), delta))}`)
   }
 
-  function openAdd() {
-    setEditTarget(null)
-    setEditorOpen(true)
-  }
-
-  function openEdit(entry: ExerciseEntry) {
-    setEditTarget(entry)
-    setEditorOpen(true)
-  }
+  function openAdd() { setEditTarget(null); setEditorOpen(true) }
+  function openEdit(entry: ExerciseEntry) { setEditTarget(entry); setEditorOpen(true) }
 
   async function handleSave(data: Omit<ExerciseEntry, 'id' | 'workoutDayId' | 'order'>) {
     if (editTarget) {
@@ -101,33 +84,26 @@ export function DailyView() {
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-4 safe-top pb-4">
-        <button onClick={() => goDay(-1)} className="text-neutral-400 hover:text-white p-2 -ml-2" aria-label="前の日">
-          ‹
-        </button>
+        <button onClick={() => goDay(-1)} className="text-neutral-400 hover:text-white p-2 -ml-2" aria-label="前の日">‹</button>
         <span className="font-mono text-base tracking-widest">{displayDate}</span>
-        <button onClick={() => goDay(1)} className="text-neutral-400 hover:text-white p-2 -mr-2" aria-label="次の日">
-          ›
-        </button>
+        <button onClick={() => goDay(1)} className="text-neutral-400 hover:text-white p-2 -mr-2" aria-label="次の日">›</button>
       </div>
 
       {/* Entry list */}
       <div className="flex-1 px-4">
-        {applying && (
-          <p className="text-neutral-500 text-xs text-center mt-4">適用中...</p>
-        )}
+        {applying && <p className="text-neutral-500 text-xs text-center mt-4">適用中...</p>}
         {entries.length === 0 && !applying && (
           <p className="text-neutral-600 text-sm mt-8 text-center">記録がありません</p>
         )}
-        {(sortMode ? sortList : entries).map((entry, i, arr) => (
+        {entries.map((entry, i) => (
           <EntryRow
             key={entry.id}
             entry={entry}
             exercise={exerciseMap.get(entry.exerciseId)}
             selectMode={selectMode}
-            sortMode={sortMode}
             checked={selectedIds.has(entry.id)}
             isFirst={i === 0}
-            isLast={i === arr.length - 1}
+            isLast={i === entries.length - 1}
             onEdit={openEdit}
             onToggle={toggleSelect}
             onMoveUp={(id) => moveEntry(id, -1)}
@@ -143,7 +119,7 @@ export function DailyView() {
 
       {/* Action bar */}
       <div className="bg-black border-t border-neutral-800 px-4 py-2 flex items-center justify-between gap-2">
-        {selectMode && (
+        {selectMode ? (
           <>
             <button onClick={exitSelectMode} className="text-neutral-400 hover:text-white text-sm">キャンセル</button>
             <button onClick={handleBulkDelete} disabled={selectedIds.size === 0}
@@ -151,14 +127,7 @@ export function DailyView() {
               削除 ({selectedIds.size}件)
             </button>
           </>
-        )}
-        {sortMode && (
-          <>
-            <button onClick={() => exitSortMode(false)} className="text-neutral-400 hover:text-white text-sm">キャンセル</button>
-            <button onClick={() => exitSortMode(true)} className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70">完了</button>
-          </>
-        )}
-        {!selectMode && !sortMode && (
+        ) : (
           <>
             <div className="flex items-center gap-3 text-xs text-neutral-500">
               <Link to="/exercises" className="hover:text-white transition-colors">種目</Link>
@@ -167,10 +136,7 @@ export function DailyView() {
                 <button onClick={() => setRoutinePickerOpen(true)} className="hover:text-white transition-colors">適用</button>
               )}
               {entries.length > 0 && (
-                <>
-                  <button onClick={enterSortMode} className="hover:text-white transition-colors">並び替え</button>
-                  <button onClick={enterSelectMode} className="hover:text-white transition-colors">選択</button>
-                </>
+                <button onClick={enterSelectMode} className="hover:text-white transition-colors">選択</button>
               )}
             </div>
             <button onClick={openAdd} className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity">
@@ -181,7 +147,6 @@ export function DailyView() {
       </div>
       <BottomNav />
 
-      {/* Entry editor */}
       {editorOpen && (
         <EntryEditor
           exercises={exercises}
@@ -191,7 +156,6 @@ export function DailyView() {
         />
       )}
 
-      {/* Routine picker */}
       {routinePickerOpen && (
         <RoutinePicker
           routines={routines}
@@ -218,20 +182,14 @@ function RoutinePicker({ routines, onSelect, onClose }: RoutinePickerProps) {
         <h2 className="text-sm font-bold mb-3">ルーティンを適用</h2>
         <div className="flex flex-col gap-1">
           {routines.map(r => (
-            <button
-              key={r.id}
-              onClick={() => onSelect(r.id)}
-              className="text-left px-3 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 active:bg-neutral-700 transition-colors"
-            >
+            <button key={r.id} onClick={() => onSelect(r.id)}
+              className="text-left px-3 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 active:bg-neutral-700 transition-colors">
               <span className="text-sm font-bold">{r.name}</span>
               <span className="text-neutral-500 text-xs ml-2">{r.exerciseIds.length}種目</span>
             </button>
           ))}
         </div>
-        <button
-          onClick={onClose}
-          className="w-full mt-3 py-3 rounded-xl border border-neutral-700 text-sm text-neutral-300"
-        >
+        <button onClick={onClose} className="w-full mt-3 py-3 rounded-xl border border-neutral-700 text-sm text-neutral-300">
           キャンセル
         </button>
       </div>
