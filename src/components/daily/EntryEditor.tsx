@@ -215,15 +215,18 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
             {/* Reps */}
             <div>
               <label className="text-xs text-neutral-500 mb-1 block">レップ数</label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2">
                 {reps.map((rep, i) => (
-                  <div key={i} className="flex items-center gap-1">
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-xs text-neutral-600 w-10 text-right shrink-0">
+                      {i + 1}セット
+                    </span>
                     <input
                       ref={el => { repInputRefs.current[i] = el }}
                       type="number"
                       value={rep}
                       onChange={e => updateRep(i, e.target.value)}
-                      className="w-14 bg-neutral-900 text-white font-mono rounded-lg px-2 py-2.5 text-sm text-center outline-none focus:ring-1 focus:ring-white/30"
+                      className="w-20 bg-neutral-900 text-white font-mono rounded-lg px-3 py-2.5 text-sm text-center outline-none focus:ring-1 focus:ring-white/30"
                       placeholder="12"
                       inputMode="numeric"
                       min="1"
@@ -238,12 +241,15 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
                     )}
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => setReps(prev => [...prev, ''])}
-                  className="w-14 py-2.5 rounded-lg border border-neutral-700 text-neutral-400 text-sm hover:border-neutral-500 transition-colors"
-                  aria-label="セット追加"
-                >＋</button>
+                <div className="flex items-center gap-2">
+                  <span className="w-10 shrink-0" />
+                  <button
+                    type="button"
+                    onClick={() => setReps(prev => [...prev, ''])}
+                    className="w-20 py-2.5 rounded-lg border border-neutral-700 text-neutral-400 text-sm hover:border-neutral-500 transition-colors"
+                    aria-label="セット追加"
+                  >＋</button>
+                </div>
               </div>
             </div>
 
