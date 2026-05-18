@@ -3,13 +3,16 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/schema'
 import { today, toDateKey, monthKey, fromMonthKey, addMonths, getMonthGrid } from '../../lib/date'
 import { BottomNav } from '../shared/BottomNav'
+import { useSettings } from '../../hooks/useSettings'
 
-const WEEK_LABELS = ['日', '月', '火', '水', '木', '金', '土']
+const ALL_WEEK_LABELS = ['日', '月', '火', '水', '木', '金', '土']
 
 export function MonthView() {
   const { month: monthParam } = useParams<{ month: string }>()
   const navigate = useNavigate()
   const todayDate = today()
+  const { settings, updateSettings } = useSettings()
+  const weekStartsOn = settings.calendarWeekStart
 
   const currentMonthKey = monthParam ?? monthKey(todayDate)
   const { year, month } = fromMonthKey(currentMonthKey)
@@ -30,12 +33,27 @@ export function MonthView() {
     return new Set(days.filter(d => activeDayIds.has(d.id)).map(d => d.date))
   }, [firstDay, lastDay], new Set<string>())
 
-  const grid = getMonthGrid(year, month)
+  const grid = getMonthGrid(year, month, weekStartsOn)
   const todayKey = toDateKey(todayDate)
+
+  // Build week label row starting from weekStartsOn
+  const weekLabels = Array.from({ length: 7 }, (_, i) => ALL_WEEK_LABELS[(weekStartsOn + i) % 7])
 
   function goMonth(delta: number) {
     const { year: ny, month: nm } = addMonths(year, month, delta)
     navigate(`/month/${ny}-${String(nm).padStart(2, '0')}`)
+  }
+
+  function labelColorClass(i: number) {
+    const dow = (weekStartsOn + i) % 7
+    return dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-neutral-500'
+  }
+
+  function cellColorClass(dow: number, isToday: boolean) {
+    if (isToday) return 'bg-white text-black font-bold'
+    if (dow === 0) return 'text-red-400'
+    if (dow === 6) return 'text-blue-400'
+    return 'text-neutral-200'
   }
 
   return (
@@ -55,14 +73,12 @@ export function MonthView() {
 
       {/* Calendar */}
       <div className="flex-1 px-3">
-        {/* Day-of-week header */}
-        <div className="grid grid-cols-7 mb-1">
-          {WEEK_LABELS.map((label, i) => (
+        {/* Week-start toggle + Day-of-week header */}
+        <div className="grid grid-cols-7 mb-1 items-center">
+          {weekLabels.map((label, i) => (
             <div
-              key={label}
-              className={`text-center text-xs py-1 ${
-                i === 0 ? 'text-red-400' : i === 6 ? 'text-blue-400' : 'text-neutral-500'
-              }`}
+              key={i}
+              className={`text-center text-xs py-1 ${labelColorClass(i)}`}
             >
               {label}
             </div>
@@ -85,15 +101,7 @@ export function MonthView() {
                 className="aspect-square flex flex-col items-center justify-center gap-0.5 active:opacity-60 transition-opacity"
               >
                 <span
-                  className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-mono leading-none ${
-                    isToday
-                      ? 'bg-white text-black font-bold'
-                      : dow === 0
-                      ? 'text-red-400'
-                      : dow === 6
-                      ? 'text-blue-400'
-                      : 'text-neutral-200'
-                  }`}
+                  className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-mono leading-none ${cellColorClass(dow, isToday)}`}
                 >
                   {date.getDate()}
                 </span>
@@ -105,6 +113,24 @@ export function MonthView() {
               </button>
             )
           })}
+        </div>
+
+        {/* Week-start toggle */}
+        <div className="flex justify-center mt-4">
+          <div className="flex bg-neutral-900 rounded-lg p-0.5 text-xs">
+            <button
+              onClick={() => updateSettings({ calendarWeekStart: 1 })}
+              className={`px-3 py-1.5 rounded-md transition-colors ${weekStartsOn === 1 ? 'bg-white text-black font-bold' : 'text-neutral-400'}`}
+            >
+              月曜始まり
+            </button>
+            <button
+              onClick={() => updateSettings({ calendarWeekStart: 0 })}
+              className={`px-3 py-1.5 rounded-md transition-colors ${weekStartsOn === 0 ? 'bg-white text-black font-bold' : 'text-neutral-400'}`}
+            >
+              日曜始まり
+            </button>
+          </div>
         </div>
       </div>
 
