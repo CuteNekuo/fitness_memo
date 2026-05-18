@@ -74,11 +74,12 @@ export function addMonths(year: number, month: number, delta: number): { year: n
   return { year: d.getFullYear(), month: d.getMonth() + 1 }
 }
 
-// Returns calendar grid (Sun-start), null = empty cell
-export function getMonthGrid(year: number, month: number): (Date | null)[] {
+// Returns calendar grid, null = empty cell. weekStartsOn: 0=Sun, 1=Mon
+export function getMonthGrid(year: number, month: number, weekStartsOn: 0 | 1 = 0): (Date | null)[] {
   const first = new Date(year, month - 1, 1)
   const daysInMonth = new Date(year, month, 0).getDate()
-  const startPad = first.getDay() // 0=Sun
+  const dow = first.getDay() // 0=Sun
+  const startPad = (dow - weekStartsOn + 7) % 7
   const cells: (Date | null)[] = Array(startPad).fill(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month - 1, d))
   while (cells.length % 7 !== 0) cells.push(null)
