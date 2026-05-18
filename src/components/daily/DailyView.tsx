@@ -7,6 +7,7 @@ import { applyRoutine, getRoutines } from '../../db/repository'
 import { EntryRow } from './EntryRow'
 import { EntryEditor } from './EntryEditor'
 import { BottomNav } from '../shared/BottomNav'
+import { BODY_PARTS } from '../../lib/constants'
 import type { ExerciseEntry, Routine } from '../../db/schema'
 
 export function DailyView() {
@@ -24,6 +25,7 @@ export function DailyView() {
   const [applying, setApplying] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [groupMode, setGroupMode] = useState(false)
 
   const exerciseMap = new Map(exercises.map(e => [e.id, e]))
 
@@ -57,7 +59,6 @@ export function DailyView() {
   function goDay(delta: number) {
     navigate(`/day/${toDateKey(addDays(fromDateKey(dateKey), delta))}`)
   }
-
   function openAdd() { setEditTarget(null); setEditorOpen(true) }
   function openEdit(entry: ExerciseEntry) { setEditTarget(entry); setEditorOpen(true) }
 
@@ -80,6 +81,30 @@ export function DailyView() {
     }
   }
 
+  // 部位グループ表示用: BODY_PARTS 順にグループ化、未分類は末尾
+  const groupedSections = (() => {
+    if (!groupMode) return null
+    const map = new Map<string, ExerciseEntry[]>()
+    const uncategorized: ExerciseEntry[] = []
+    for (const entry of entries) {
+      const bp = exerciseMap.get(entry.exerciseId)?.bodyPart
+      if (bp) {
+        const arr = map.get(bp) ?? []
+        arr.push(entry)
+        map.set(bp, arr)
+      } else {
+        uncategorized.push(entry)
+      }
+    }
+    const sections: { label: string; items: ExerciseEntry[] }[] = BODY_PARTS
+      .filter(bp => map.has(bp))
+      .map(bp => ({ label: bp, items: map.get(bp)! }))
+    if (uncategorized.length > 0) sections.push({ label: '未分類', items: uncategorized })
+    return sections
+  })()
+
+  const hasBodyParts = entries.some(e => exerciseMap.get(e.exerciseId)?.bodyPart)
+
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
@@ -95,7 +120,36 @@ export function DailyView() {
         {entries.length === 0 && !applying && (
           <p className="text-neutral-600 text-sm mt-8 text-center">記録がありません</p>
         )}
-        {entries.map((entry, i) => (
+
+        {/* 部位グループ表示 */}
+        {groupMode && groupedSections && groupedSections.map(section => (
+          <div key={section.label}>
+            <p className="text-xs text-neutral-500 tracking-widest mt-4 mb-1">{section.label}</p>
+            {section.items.map(entry => (
+              <EntryRow
+                key={entry.id}
+                entry={entry}
+                exercise={exerciseMap.get(entry.exerciseId)}
+                selectMode={selectMode}
+                checked={selectedIds.has(entry.id)}
+                isFirst={false}
+                isLast={false}
+                onEdit={openEdit}
+                onToggle={toggleSelect}
+                onMoveUp={() => {}}
+                onMoveDown={() => {}}
+                onDelete={async (id) => {
+                  const abbr = exerciseMap.get(entry.exerciseId)?.abbreviation ?? '種目'
+                  if (!confirm(`「${abbr}」の記録を削除しますか？`)) return
+                  await removeEntry(id)
+                }}
+              />
+            ))}
+          </div>
+        ))}
+
+        {/* フラット表示 */}
+        {!groupMode && entries.map((entry, i) => (
           <EntryRow
             key={entry.id}
             entry={entry}
@@ -136,7 +190,17 @@ export function DailyView() {
                 <button onClick={() => setRoutinePickerOpen(true)} className="hover:text-white transition-colors">適用</button>
               )}
               {entries.length > 0 && (
-                <button onClick={enterSelectMode} className="hover:text-white transition-colors">選択</button>
+                <>
+                  {hasBodyParts && (
+                    <button
+                      onClick={() => setGroupMode(v => !v)}
+                      className={`transition-colors ${groupMode ? 'text-white font-bold' : 'hover:text-white'}`}
+                    >
+                      部位別
+                    </button>
+                  )}
+                  <button onClick={enterSelectMode} className="hover:text-white transition-colors">選択</button>
+                </>
               )}
             </div>
             <button onClick={openAdd} className="bg-white text-black font-bold text-sm px-5 py-2 rounded-full active:opacity-70 transition-opacity">
