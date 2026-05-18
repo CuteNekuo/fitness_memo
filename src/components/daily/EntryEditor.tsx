@@ -27,6 +27,7 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
   const [reps, setReps] = useState<string[]>(
     initial ? initial.reps.map(String) : ['']
   )
+  const [memo, setMemo] = useState(initial?.memo ?? '')
   const [suggestions, setSuggestions] = useState<Exercise[]>([])
 
   // Text mode state
@@ -88,6 +89,7 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
         mainWeight: parseFloat(mainWeight),
         warmupWeight: warmupWeight ? parseFloat(warmupWeight) : undefined,
         reps: parsedReps,
+        memo: memo.trim() || undefined,
       })
     } finally {
       setSaving(false)
@@ -106,7 +108,7 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
         abbreviation,
         fullName: exercises.find(e => e.abbreviation === abbreviation)?.fullName ?? '',
       })
-      await onSave({ exerciseId: exercise.id, mainWeight: mw, warmupWeight: ww, reps: r, weightDelta })
+      await onSave({ exerciseId: exercise.id, mainWeight: mw, warmupWeight: ww, reps: r, weightDelta, memo: memo.trim() || undefined })
     } finally {
       setSaving(false)
     }
@@ -231,6 +233,17 @@ export function EntryEditor({ exercises, initial, defaultMode = 'form', onSave, 
                   aria-label="セット追加"
                 >＋</button>
               </div>
+            </div>
+
+            {/* Memo */}
+            <div>
+              <label className="text-xs text-neutral-500 mb-1 block">メモ</label>
+              <input
+                value={memo}
+                onChange={e => setMemo(e.target.value)}
+                className="w-full bg-neutral-900 text-white rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-white/30"
+                placeholder="省略可"
+              />
             </div>
 
             <ActionButtons saving={saving} disabled={!abbr.trim() || !mainWeight} onClose={onClose} />
