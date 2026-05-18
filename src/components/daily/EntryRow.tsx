@@ -37,6 +37,7 @@ export function EntryRow({ entry, exercise, selectMode, checked, isFirst, isLast
           <div>
             <p className="font-mono text-sm leading-snug">{abbr} {weightStr}</p>
             <p className="font-mono text-sm leading-snug text-neutral-400">{warmupStr} {repsStr}</p>
+            {entry.memo && <p className="text-xs text-neutral-500 mt-0.5">{entry.memo}</p>}
           </div>
           {!selectMode && (
             <div className="flex items-center">
