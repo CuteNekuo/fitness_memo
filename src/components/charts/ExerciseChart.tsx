@@ -11,6 +11,7 @@ import { BottomNav } from '../shared/BottomNav'
 import { BODY_PARTS } from '../../lib/constants'
 
 type Period = '1m' | '3m' | '6m' | '1y'
+type Metric = 'weight' | 'reps' | 'orm'
 
 const PERIODS: { label: string; value: Period; days: number }[] = [
   { label: '1ヶ月', value: '1m', days: 30 },
@@ -19,16 +20,28 @@ const PERIODS: { label: string; value: Period; days: number }[] = [
   { label: '1年', value: '1y', days: 365 },
 ]
 
+const METRICS: { label: string; value: Metric; unit: string; description: string }[] = [
+  { label: '重量', value: 'weight', unit: 'kg', description: '本セット重量' },
+  { label: 'レップ', value: 'reps', unit: 'rep', description: '最大レップ数' },
+  { label: '推定1RM', value: 'orm', unit: 'kg', description: '推定1RM (Epley式)' },
+]
+
+// Epley formula: weight * (1 + reps / 30)
+function estimate1RM(weight: number, reps: number): number {
+  if (reps === 1) return weight
+  return Math.round(weight * (1 + reps / 30) * 10) / 10
+}
+
 export function ExerciseChart() {
   const [selectedId, setSelectedId] = useState<string>('')
   const [period, setPeriod] = useState<Period>('3m')
+  const [metric, setMetric] = useState<Metric>('weight')
   const [filterPart, setFilterPart] = useState<string>('すべて')
 
   const exercises = useLiveQuery<Exercise[], Exercise[]>(() => db.exercises.orderBy('abbreviation').toArray(), [], [])
 
   const periodDays = PERIODS.find(p => p.value === period)!.days
-  const fromDate = addDays(today(), -periodDays)
-  const fromKey = toDateKey(fromDate)
+  const fromKey = toDateKey(addDays(today(), -periodDays))
 
   const chartData = useLiveQuery(
     async () => {
@@ -37,39 +50,48 @@ export function ExerciseChart() {
       const days = await db.workoutDays
         .where('date').aboveOrEqual(fromKey)
         .toArray() as WorkoutDay[]
-
       if (days.length === 0) return []
 
       const dayIdToDate = new Map(days.map(d => [d.id, d.date]))
-      const dayIds = days.map(d => d.id)
-
       const entries = await db.exerciseEntries
-        .where('workoutDayId').anyOf(dayIds)
+        .where('workoutDayId').anyOf(days.map(d => d.id))
         .and(e => e.exerciseId === selectedId)
         .toArray() as ExerciseEntry[]
 
-      // One data point per day (max mainWeight if multiple entries)
       const byDate = new Map<string, number>()
       for (const entry of entries) {
         const date = dayIdToDate.get(entry.workoutDayId)
         if (!date) continue
+        let value = 0
+        if (metric === 'weight') {
+          value = entry.mainWeight
+        } else if (metric === 'reps') {
+          value = entry.reps.length > 0 ? Math.max(...entry.reps) : 0
+        } else {
+          // best estimated 1RM across all sets
+          value = entry.reps.reduce((best, r) => {
+            const orm = estimate1RM(entry.mainWeight, r)
+            return orm > best ? orm : best
+          }, 0)
+        }
         const existing = byDate.get(date) ?? 0
-        if (entry.mainWeight > existing) byDate.set(date, entry.mainWeight)
+        if (value > existing) byDate.set(date, value)
       }
 
       return Array.from(byDate.entries())
         .sort(([a], [b]) => a.localeCompare(b))
-        .map(([date, weight]) => ({
+        .map(([date, value]) => ({
           date,
-          label: formatDisplay(fromDateKey(date)).slice(5), // MM/DD
-          weight,
+          label: formatDisplay(fromDateKey(date)).slice(5),
+          value,
         }))
     },
-    [selectedId, fromKey],
+    [selectedId, fromKey, metric],
     []
   )
 
   const selected = exercises.find(e => e.id === selectedId)
+  const currentMetric = METRICS.find(m => m.value === metric)!
 
   const usedBodyParts = ['すべて', ...BODY_PARTS.filter(bp => exercises.some(e => e.bodyPart === bp))]
   if (exercises.some(e => !e.bodyPart)) usedBodyParts.push('未分類')
@@ -126,21 +148,38 @@ export function ExerciseChart() {
         </div>
       </div>
 
-      {/* Period toggle */}
-      <div className="flex gap-1 px-4 py-3 border-b border-neutral-800">
-        {PERIODS.map(p => (
-          <button
-            key={p.value}
-            onClick={() => setPeriod(p.value)}
-            className={`flex-1 py-1.5 rounded-lg text-xs transition-colors ${
-              period === p.value
-                ? 'bg-white text-black font-bold'
-                : 'text-neutral-500 hover:text-white'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+      {/* Metric + Period toggles */}
+      <div className="px-4 py-3 border-b border-neutral-800 flex flex-col gap-2">
+        <div className="flex gap-1">
+          {METRICS.map(m => (
+            <button
+              key={m.value}
+              onClick={() => setMetric(m.value)}
+              className={`flex-1 py-1.5 rounded-lg text-xs transition-colors ${
+                metric === m.value
+                  ? 'bg-white text-black font-bold'
+                  : 'text-neutral-500 hover:text-white'
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1">
+          {PERIODS.map(p => (
+            <button
+              key={p.value}
+              onClick={() => setPeriod(p.value)}
+              className={`flex-1 py-1.5 rounded-lg text-xs transition-colors ${
+                period === p.value
+                  ? 'bg-neutral-700 text-white font-bold'
+                  : 'text-neutral-500 hover:text-white'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Chart */}
@@ -156,7 +195,7 @@ export function ExerciseChart() {
         {selectedId && (chartData ?? []).length > 0 && (
           <>
             <p className="text-xs text-neutral-500 text-center mb-2">
-              {selected?.abbreviation} — 本セット重量 (kg)
+              {selected?.abbreviation} — {currentMetric.description}
             </p>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={chartData ?? []} margin={{ top: 8, right: 16, left: -16, bottom: 0 }}>
@@ -178,11 +217,11 @@ export function ExerciseChart() {
                   contentStyle={{ background: '#171717', border: '1px solid #404040', borderRadius: 8 }}
                   labelStyle={{ color: '#a3a3a3', fontSize: 11 }}
                   itemStyle={{ color: '#fff', fontSize: 12 }}
-                  formatter={(v: unknown) => [`${v} kg`, '重量']}
+                  formatter={(v: unknown) => [`${v} ${currentMetric.unit}`, currentMetric.label]}
                 />
                 <Line
                   type="monotone"
-                  dataKey="weight"
+                  dataKey="value"
                   stroke="#fff"
                   strokeWidth={1.5}
                   dot={{ fill: '#fff', r: 3 }}
