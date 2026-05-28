@@ -42,11 +42,11 @@ export function EntryRow({ entry, exercise, selectMode, checked, isFirst, isLast
           {!selectMode && (
             <div className="flex items-center">
               <button onClick={e => { e.stopPropagation(); onMoveUp(entry.id) }} disabled={isFirst}
-                className="text-neutral-600 hover:text-white disabled:opacity-20 px-1.5 py-1 text-sm leading-none">↑</button>
+                className="text-neutral-600 hover:text-white disabled:opacity-20 px-3 py-2 text-lg leading-none">↑</button>
               <button onClick={e => { e.stopPropagation(); onMoveDown(entry.id) }} disabled={isLast}
-                className="text-neutral-600 hover:text-white disabled:opacity-20 px-1.5 py-1 text-sm leading-none">↓</button>
+                className="text-neutral-600 hover:text-white disabled:opacity-20 px-3 py-2 text-lg leading-none">↓</button>
               <button onClick={e => { e.stopPropagation(); onDelete(entry.id) }}
-                className="text-neutral-600 hover:text-red-500 transition-colors px-2 py-1 text-xs ml-1" aria-label="削除">×</button>
+                className="text-neutral-600 hover:text-red-500 transition-colors px-3 py-2 text-sm ml-1" aria-label="削除">×</button>
             </div>
           )}
         </div>
