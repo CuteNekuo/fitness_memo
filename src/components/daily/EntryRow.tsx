@@ -52,9 +52,9 @@ export function EntryRow({
           {!selectMode && (
             <div className="flex items-center">
               <button
-                onTouchStart={e => { e.stopPropagation(); onDragStart?.(entry.id) }}
-                onTouchMove={e => { e.stopPropagation(); onDragMove?.(e.touches[0].clientY) }}
-                onTouchEnd={e => { e.stopPropagation(); onDragEnd?.() }}
+                onTouchStart={e => { e.stopPropagation(); e.preventDefault(); onDragStart?.(entry.id) }}
+                onTouchMove={e => { e.stopPropagation(); e.preventDefault(); onDragMove?.(e.touches[0].clientY) }}
+                onTouchEnd={e => { e.stopPropagation(); e.preventDefault(); onDragEnd?.() }}
                 style={{ touchAction: 'none' }}
                 className={`px-3 py-3 text-xl leading-none select-none ${
                   onDragStart ? 'text-neutral-500 active:text-white' : 'text-neutral-800'
