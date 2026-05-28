@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { today, toDateKey, fromDateKey, formatDisplay, addDays } from '../../lib/date'
@@ -27,6 +27,11 @@ export function DailyView() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [groupMode, setGroupMode] = useState(false)
 
+  // Drag reorder state
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number>(-1)
+  const dragFromIndex = useRef(-1)
+
   const exerciseMap = new Map(exercises.map(e => [e.id, e]))
 
   function enterSelectMode() { setSelectMode(true); setSelectedIds(new Set()) }
@@ -45,15 +50,34 @@ export function DailyView() {
     exitSelectMode()
   }
 
-  async function moveEntry(id: string, delta: number) {
+  function handleDragStart(id: string) {
     const idx = entries.findIndex(e => e.id === id)
-    if (idx < 0) return
-    const target = idx + delta
-    if (target < 0 || target >= entries.length) return
-    const a = entries[idx]
-    const b = entries[target]
-    await editEntry(a.id, { order: b.order })
-    await editEntry(b.id, { order: a.order })
+    dragFromIndex.current = idx
+    setDraggingId(id)
+    setDragOverIndex(idx)
+  }
+
+  function handleDragMove(clientY: number) {
+    const el = document.elementFromPoint(window.innerWidth / 2, clientY)
+    const row = el?.closest('[data-di]')
+    if (row) {
+      const idx = parseInt(row.getAttribute('data-di') ?? '-1', 10)
+      if (idx >= 0) setDragOverIndex(idx)
+    }
+  }
+
+  async function handleDragEnd() {
+    const from = dragFromIndex.current
+    const to = dragOverIndex
+    setDraggingId(null)
+    setDragOverIndex(-1)
+    dragFromIndex.current = -1
+    if (from >= 0 && to >= 0 && from !== to) {
+      const newEntries = [...entries]
+      const [moved] = newEntries.splice(from, 1)
+      newEntries.splice(to, 0, moved)
+      await Promise.all(newEntries.map((e, i) => editEntry(e.id, { order: i })))
+    }
   }
 
   function goDay(delta: number) {
@@ -136,12 +160,8 @@ export function DailyView() {
                 exercise={exerciseMap.get(entry.exerciseId)}
                 selectMode={selectMode}
                 checked={selectedIds.has(entry.id)}
-                isFirst={true}
-                isLast={true}
                 onEdit={openEdit}
                 onToggle={toggleSelect}
-                onMoveUp={() => {}}
-                onMoveDown={() => {}}
                 onDelete={async (id) => {
                   const abbr = exerciseMap.get(entry.exerciseId)?.abbreviation ?? '種目'
                   if (!confirm(`「${abbr}」の記録を削除しますか？`)) return
@@ -160,12 +180,14 @@ export function DailyView() {
             exercise={exerciseMap.get(entry.exerciseId)}
             selectMode={selectMode}
             checked={selectedIds.has(entry.id)}
-            isFirst={i === 0}
-            isLast={i === entries.length - 1}
+            isDragging={draggingId === entry.id}
+            isDragTarget={draggingId !== null && dragOverIndex === i && draggingId !== entry.id}
+            dragIndex={i}
             onEdit={openEdit}
             onToggle={toggleSelect}
-            onMoveUp={(id) => moveEntry(id, -1)}
-            onMoveDown={(id) => moveEntry(id, 1)}
+            onDragStart={handleDragStart}
+            onDragMove={handleDragMove}
+            onDragEnd={handleDragEnd}
             onDelete={async (id) => {
               const abbr = exerciseMap.get(entries.find(e => e.id === id)?.exerciseId ?? '')?.abbreviation ?? '種目'
               if (!confirm(`「${abbr}」の記録を削除しますか？`)) return
