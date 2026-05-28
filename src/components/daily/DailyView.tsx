@@ -31,6 +31,7 @@ export function DailyView() {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number>(-1)
   const dragFromIndex = useRef(-1)
+  const justDragged = useRef(false)
 
   const exerciseMap = new Map(exercises.map(e => [e.id, e]))
 
@@ -72,6 +73,8 @@ export function DailyView() {
     setDraggingId(null)
     setDragOverIndex(-1)
     dragFromIndex.current = -1
+    justDragged.current = true
+    setTimeout(() => { justDragged.current = false }, 400)
     if (from >= 0 && to >= 0 && from !== to) {
       const newEntries = [...entries]
       const [moved] = newEntries.splice(from, 1)
@@ -84,7 +87,11 @@ export function DailyView() {
     navigate(`/day/${toDateKey(addDays(fromDateKey(dateKey), delta))}`)
   }
   function openAdd() { setEditTarget(null); setEditorOpen(true) }
-  function openEdit(entry: ExerciseEntry) { setEditTarget(entry); setEditorOpen(true) }
+  function openEdit(entry: ExerciseEntry) {
+    if (justDragged.current) return
+    setEditTarget(entry)
+    setEditorOpen(true)
+  }
 
   async function handleSave(data: Omit<ExerciseEntry, 'id' | 'workoutDayId' | 'order'>) {
     if (editTarget) {
