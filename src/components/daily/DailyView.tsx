@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { today, toDateKey, fromDateKey, formatDisplay, addDays } from '../../lib/date'
 import { useWorkoutDay } from '../../hooks/useWorkoutDay'
-import { applyRoutine, getRoutines } from '../../db/repository'
+import { applyRoutine, getRoutines, getPreviousRecords } from '../../db/repository'
+import type { PreviousRecord } from '../../db/repository'
 import { EntryRow } from './EntryRow'
 import { EntryEditor } from './EntryEditor'
 import { BottomNav } from '../shared/BottomNav'
@@ -18,6 +19,13 @@ export function DailyView() {
 
   const { entries, exercises, saveEntry, editEntry, removeEntry } = useWorkoutDay(dateKey)
   const routines = useLiveQuery<Routine[], Routine[]>(() => getRoutines(), [], [])
+
+  const entryExerciseIds = [...new Set(entries.map(e => e.exerciseId))].sort().join(',')
+  const prevRecords = useLiveQuery<Map<string, PreviousRecord>, Map<string, PreviousRecord>>(
+    () => getPreviousRecords(entryExerciseIds ? entryExerciseIds.split(',') : [], dateKey),
+    [entryExerciseIds, dateKey],
+    new Map()
+  )
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<ExerciseEntry | null>(null)
@@ -167,6 +175,7 @@ export function DailyView() {
                 exercise={exerciseMap.get(entry.exerciseId)}
                 selectMode={selectMode}
                 checked={selectedIds.has(entry.id)}
+                prevRecord={prevRecords.get(entry.exerciseId)}
                 onEdit={openEdit}
                 onToggle={toggleSelect}
                 onDelete={async (id) => {
@@ -190,6 +199,7 @@ export function DailyView() {
             isDragging={draggingId === entry.id}
             isDragTarget={draggingId !== null && dragOverIndex === i && draggingId !== entry.id}
             dragIndex={i}
+            prevRecord={prevRecords.get(entry.exerciseId)}
             onEdit={openEdit}
             onToggle={toggleSelect}
             onDragStart={handleDragStart}

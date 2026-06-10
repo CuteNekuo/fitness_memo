@@ -1,4 +1,5 @@
 import type { ExerciseEntry, Exercise } from '../../db/schema'
+import type { PreviousRecord } from '../../db/repository'
 
 interface Props {
   entry: ExerciseEntry
@@ -8,6 +9,7 @@ interface Props {
   isDragging?: boolean
   isDragTarget?: boolean
   dragIndex?: number
+  prevRecord?: PreviousRecord
   onEdit: (entry: ExerciseEntry) => void
   onDelete: (id: string) => void
   onToggle: (id: string) => void
@@ -16,9 +18,19 @@ interface Props {
   onDragEnd?: () => void
 }
 
+function formatPrev(prev: PreviousRecord): string {
+  const [, m, d] = prev.date.split('-')
+  const parts = prev.entries.map(e => {
+    const w = e.weightDelta ? e.weightDelta : `${e.mainWeight}k`
+    const reps = e.reps.map(r => `/${r}`).join('')
+    return reps ? `${w} ${reps}` : w
+  })
+  return `前回 ${Number(m)}/${Number(d)}: ${parts.join(', ')}`
+}
+
 export function EntryRow({
   entry, exercise, selectMode, checked,
-  isDragging, isDragTarget, dragIndex,
+  isDragging, isDragTarget, dragIndex, prevRecord,
   onEdit, onDelete, onToggle,
   onDragStart, onDragMove, onDragEnd,
 }: Props) {
@@ -48,6 +60,9 @@ export function EntryRow({
             <p className="font-mono text-sm leading-snug">{abbr} {weightStr}</p>
             <p className="font-mono text-sm leading-snug text-neutral-400">{warmupStr} {repsStr}</p>
             {entry.memo && <p className="text-xs text-neutral-500 mt-0.5">{entry.memo}</p>}
+            {prevRecord && (
+              <p className="font-mono text-xs leading-snug text-neutral-600 mt-0.5">{formatPrev(prevRecord)}</p>
+            )}
           </div>
           {!selectMode && (
             <div className="flex items-center">
