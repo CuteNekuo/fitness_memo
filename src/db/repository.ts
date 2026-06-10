@@ -37,6 +37,39 @@ export async function deleteEntry(id: string): Promise<void> {
   await db.exerciseEntries.delete(id)
 }
 
+// 各種目について beforeDate より前に最後にやった日の記録を返す
+export interface PreviousRecord {
+  date: string
+  entries: ExerciseEntry[]
+}
+
+export async function getPreviousRecords(
+  exerciseIds: string[],
+  beforeDate: string
+): Promise<Map<string, PreviousRecord>> {
+  const result = new Map<string, PreviousRecord>()
+  if (exerciseIds.length === 0) return result
+
+  const allEntries = await db.exerciseEntries.where('exerciseId').anyOf(exerciseIds).toArray()
+  if (allEntries.length === 0) return result
+
+  const dayIds = [...new Set(allEntries.map(e => e.workoutDayId))]
+  const days = await db.workoutDays.where('id').anyOf(dayIds).toArray()
+  const dayDate = new Map(days.map(d => [d.id, d.date]))
+
+  for (const entry of allEntries) {
+    const date = dayDate.get(entry.workoutDayId)
+    if (!date || date >= beforeDate) continue
+    const current = result.get(entry.exerciseId)
+    if (!current || date > current.date) {
+      result.set(entry.exerciseId, { date, entries: [entry] })
+    } else if (date === current.date) {
+      current.entries.push(entry)
+    }
+  }
+  return result
+}
+
 // Exercise (master)
 
 export async function getExercises(): Promise<Exercise[]> {
