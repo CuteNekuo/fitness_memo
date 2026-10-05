@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 
 export interface AppSettings {
   calendarWeekStart: 0 | 1  // 0=Sun, 1=Mon
+  restSeconds: number
 }
 
 const STORAGE_KEY = 'app_settings'
@@ -15,7 +16,7 @@ function loadSettings(): AppSettings {
 }
 
 function defaultSettings(): AppSettings {
-  return { calendarWeekStart: 1 }
+  return { calendarWeekStart: 1, restSeconds: 90 }
 }
 
 export function useSettings() {

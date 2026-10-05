@@ -7,6 +7,7 @@ import { applyRoutine, getRoutines, getPreviousRecords } from '../../db/reposito
 import type { PreviousRecord } from '../../db/repository'
 import { EntryRow } from './EntryRow'
 import { EntryEditor } from './EntryEditor'
+import { RestTimer } from './RestTimer'
 import { BottomNav } from '../shared/BottomNav'
 import { BODY_PARTS } from '../../lib/constants'
 import type { ExerciseEntry, Routine } from '../../db/schema'
@@ -213,6 +214,8 @@ export function DailyView() {
           />
         ))}
       </div>
+
+      <RestTimer />
 
       {/* Action bar */}
       <div className="bg-black border-t border-neutral-800 px-4 py-2 flex items-center justify-between gap-2">
