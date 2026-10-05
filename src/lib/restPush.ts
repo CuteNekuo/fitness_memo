@@ -18,38 +18,61 @@ function base64UrlToBytes(base64Url: string): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
-export async function enablePush(): Promise<boolean> {
-  if (!isPushSupported()) return false
-  const permission = await Notification.requestPermission()
-  if (permission !== 'granted') return false
-  const reg = await navigator.serviceWorker.ready
-  if (await reg.pushManager.getSubscription()) return true
-  const res = await fetch('/api/rest-timer')
-  if (!res.ok) return false
-  const { publicKey } = (await res.json()) as { publicKey: string }
-  await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: base64UrlToBytes(publicKey),
-  })
-  return true
+export async function hasPushSubscription(): Promise<boolean> {
+  if (!isPushEnabled()) return false
+  try {
+    const reg = await navigator.serviceWorker.ready
+    return (await reg.pushManager.getSubscription()) != null
+  } catch {
+    return false
+  }
 }
 
-export async function schedulePush(delaySeconds: number): Promise<string | null> {
+async function errorText(res: Response): Promise<string> {
+  const text = await res.text().catch(() => '')
+  return `サーバー ${res.status}: ${text.slice(0, 150)}`
+}
+
+// 成功なら null、失敗なら画面に出す理由を返す
+export async function enablePush(): Promise<string | null> {
+  if (!isPushSupported()) return 'この環境は通知に対応していません。ホーム画面に追加したアプリから開いてください。'
+  const permission = await Notification.requestPermission()
+  if (permission !== 'granted') return '通知が許可されていません。iPhoneの設定 → 通知 → WorkoutNote を確認してください。'
+  try {
+    const reg = await navigator.serviceWorker.ready
+    if (await reg.pushManager.getSubscription()) return null
+    const res = await fetch('/api/rest-timer')
+    if (!res.ok) return await errorText(res)
+    const { publicKey } = (await res.json()) as { publicKey: string }
+    await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: base64UrlToBytes(publicKey),
+    })
+    return null
+  } catch (e) {
+    return `登録エラー: ${String(e)}`
+  }
+}
+
+export type ScheduleResult = { id: string } | { error: string }
+
+// 通知がオフなら null（エラー扱いしない）
+export async function schedulePush(delaySeconds: number): Promise<ScheduleResult | null> {
   if (!isPushEnabled()) return null
   try {
     const reg = await navigator.serviceWorker.ready
     const sub = await reg.pushManager.getSubscription()
-    if (!sub) return null
+    if (!sub) return { error: '通知の登録がありません。「通知オン」を押し直してください。' }
     const res = await fetch('/api/rest-timer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'schedule', subscription: sub.toJSON(), delaySeconds }),
     })
-    if (!res.ok) return null
+    if (!res.ok) return { error: await errorText(res) }
     const { messageId } = (await res.json()) as { messageId?: string }
-    return messageId ?? null
-  } catch {
-    return null
+    return messageId ? { id: messageId } : { error: '予約IDが返りませんでした' }
+  } catch (e) {
+    return { error: `通信エラー: ${String(e)}` }
   }
 }
 
