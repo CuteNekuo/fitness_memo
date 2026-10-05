@@ -75,6 +75,7 @@ export function useRestTimer() {
   const [endAt, setEndAt] = useState<number | null>(loadEndAt)
   const [now, setNow] = useState(() => Date.now())
   const [finished, setFinished] = useState(false)
+  const [pushError, setPushError] = useState<string | null>(null)
   // 予約リクエストの応答順が入れ替わっても、最新の予約だけを残すための世代番号
   const pushGen = useRef(0)
 
@@ -83,11 +84,22 @@ export function useRestTimer() {
     const old = loadPushId()
     savePushId(null)
     if (old) void cancelPush(old)
-    if (delaySeconds == null) return
-    void schedulePush(delaySeconds).then(id => {
-      if (!id) return
-      if (gen !== pushGen.current) void cancelPush(id)
-      else savePushId(id)
+    if (delaySeconds == null) {
+      setPushError(null)
+      return
+    }
+    void schedulePush(delaySeconds).then(result => {
+      if (!result) return
+      if ('error' in result) {
+        if (gen === pushGen.current) setPushError(result.error)
+        return
+      }
+      if (gen !== pushGen.current) {
+        void cancelPush(result.id)
+        return
+      }
+      savePushId(result.id)
+      setPushError(null)
     })
   }, [])
 
@@ -141,6 +153,7 @@ export function useRestTimer() {
     running: endAt != null,
     remainingMs: endAt == null ? 0 : Math.max(0, endAt - now),
     finished,
+    pushError,
     start,
     adjust,
     stop,
