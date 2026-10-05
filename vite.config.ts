@@ -15,6 +15,7 @@ export default defineConfig({
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/],
         globPatterns: ['**/*.{js,css,html,png,svg,ico,woff2}'],
+        importScripts: ['push-sw.js'],
       },
       manifest: {
         name: 'WorkoutNote',
