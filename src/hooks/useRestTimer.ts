@@ -1,8 +1,25 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { REST_STALE_MS } from '../lib/constants'
+import { schedulePush, cancelPush } from '../lib/restPush'
 
 // 終了時刻を保存しておくと、画面遷移やアプリのバックグラウンド化から戻っても残り時間が正しく出る
 const STORAGE_KEY = 'rest_timer_end'
+const PUSH_ID_KEY = 'rest_timer_push_id'
+
+function loadPushId(): string | null {
+  try {
+    return localStorage.getItem(PUSH_ID_KEY)
+  } catch {
+    return null
+  }
+}
+
+function savePushId(v: string | null) {
+  try {
+    if (v == null) localStorage.removeItem(PUSH_ID_KEY)
+    else localStorage.setItem(PUSH_ID_KEY, v)
+  } catch {}
+}
 
 function loadEndAt(): number | null {
   try {
@@ -58,6 +75,21 @@ export function useRestTimer() {
   const [endAt, setEndAt] = useState<number | null>(loadEndAt)
   const [now, setNow] = useState(() => Date.now())
   const [finished, setFinished] = useState(false)
+  // 予約リクエストの応答順が入れ替わっても、最新の予約だけを残すための世代番号
+  const pushGen = useRef(0)
+
+  const reschedulePush = useCallback((delaySeconds: number | null) => {
+    const gen = ++pushGen.current
+    const old = loadPushId()
+    savePushId(null)
+    if (old) void cancelPush(old)
+    if (delaySeconds == null) return
+    void schedulePush(delaySeconds).then(id => {
+      if (!id) return
+      if (gen !== pushGen.current) void cancelPush(id)
+      else savePushId(id)
+    })
+  }, [])
 
   useEffect(() => {
     if (endAt == null) return
@@ -69,6 +101,7 @@ export function useRestTimer() {
     if (endAt == null || now < endAt) return
     setEndAt(null)
     saveEndAt(null)
+    savePushId(null)
     if (now - endAt < REST_STALE_MS) {
       setFinished(true)
       notify()
@@ -83,22 +116,24 @@ export function useRestTimer() {
     setEndAt(e)
     saveEndAt(e)
     setFinished(false)
-  }, [])
+    reschedulePush(seconds)
+  }, [reschedulePush])
 
   const adjust = useCallback((deltaSeconds: number) => {
-    setEndAt(prev => {
-      if (prev == null) return prev
-      const e = Math.max(Date.now(), prev + deltaSeconds * 1000)
-      saveEndAt(e)
-      return e
-    })
-  }, [])
+    if (endAt == null) return
+    const t = Date.now()
+    const e = Math.max(t, endAt + deltaSeconds * 1000)
+    setEndAt(e)
+    saveEndAt(e)
+    reschedulePush((e - t) / 1000)
+  }, [endAt, reschedulePush])
 
   const stop = useCallback(() => {
     setEndAt(null)
     saveEndAt(null)
     setFinished(false)
-  }, [])
+    reschedulePush(null)
+  }, [reschedulePush])
 
   const dismiss = useCallback(() => setFinished(false), [])
 
