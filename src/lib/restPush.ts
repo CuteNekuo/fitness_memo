@@ -8,6 +8,37 @@ export function isPushEnabled(): boolean {
   return isPushSupported() && Notification.permission === 'granted'
 }
 
+// push-sw.js の終了通知と同じ tag にして、終了時に「レスト中」が「レスト終了」で置き換わるようにする
+const NOTIFICATION_TAG = 'rest-timer'
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0')
+}
+
+// iOS の Web 通知は表示後に中身を更新できないので、残り秒数ではなく終了時刻を出す
+export async function showRunningNotification(endAt: number, seconds: number): Promise<void> {
+  if (!isPushEnabled()) return
+  try {
+    const end = new Date(endAt)
+    const s = Math.round(seconds)
+    const reg = await navigator.serviceWorker.ready
+    await reg.showNotification('レスト中', {
+      body: `${end.getHours()}:${pad2(end.getMinutes())}:${pad2(end.getSeconds())} に終了（${Math.floor(s / 60)}:${pad2(s % 60)}）`,
+      tag: NOTIFICATION_TAG,
+      silent: true,
+      icon: '/icons/icon-192.png',
+    })
+  } catch {}
+}
+
+export async function closeRestNotifications(): Promise<void> {
+  if (!isPushSupported()) return
+  try {
+    const reg = await navigator.serviceWorker.ready
+    for (const n of await reg.getNotifications({ tag: NOTIFICATION_TAG })) n.close()
+  } catch {}
+}
+
 function base64UrlToBytes(base64Url: string): Uint8Array<ArrayBuffer> {
   const base64 = (base64Url + '='.repeat((4 - (base64Url.length % 4)) % 4))
     .replace(/-/g, '+')
