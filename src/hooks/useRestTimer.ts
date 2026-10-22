@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { REST_STALE_MS } from '../lib/constants'
-import { schedulePush, cancelPush } from '../lib/restPush'
+import { schedulePush, cancelPush, showRunningNotification, closeRestNotifications } from '../lib/restPush'
 
 // 終了時刻を保存しておくと、画面遷移やアプリのバックグラウンド化から戻っても残り時間が正しく出る
 const STORAGE_KEY = 'rest_timer_end'
@@ -129,6 +129,7 @@ export function useRestTimer() {
     saveEndAt(e)
     setFinished(false)
     reschedulePush(seconds)
+    void showRunningNotification(e, seconds)
   }, [reschedulePush])
 
   const adjust = useCallback((deltaSeconds: number) => {
@@ -138,6 +139,7 @@ export function useRestTimer() {
     setEndAt(e)
     saveEndAt(e)
     reschedulePush((e - t) / 1000)
+    void showRunningNotification(e, (e - t) / 1000)
   }, [endAt, reschedulePush])
 
   const stop = useCallback(() => {
@@ -145,9 +147,13 @@ export function useRestTimer() {
     saveEndAt(null)
     setFinished(false)
     reschedulePush(null)
+    void closeRestNotifications()
   }, [reschedulePush])
 
-  const dismiss = useCallback(() => setFinished(false), [])
+  const dismiss = useCallback(() => {
+    setFinished(false)
+    void closeRestNotifications()
+  }, [])
 
   return {
     running: endAt != null,
